@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover" />
+<title>GymPocket — Siwy & Szymon (FIXED)</title>
+<style>
+:root{
+  --bg:#000;
+  --card:#1c1c1e;
+  --card-hover:#2c2c2e;
+  --text:#fff;
+  --muted:#8e8e93;
+  --push:#ff9f0a;
+  --pull:#0a84ff;
+  --legs:#30d158;
+  --danger:#ff453a;
+  --xbox:#107c10;
+  --safe-top:env(safe-area-inset-top,20px);
+  --safe-bottom:env(safe-area-inset-bottom,20px);
+}
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);overflow:hidden}
+#splash{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(circle at center,#111 0%,#000 100%);z-index:9999;cursor:pointer}
+#splash h1{font-size:3.6rem;margin:0;font-weight:900;background:linear-gradient(90deg,var(--push),var(--pull),var(--legs));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+#splash p{color:#999;margin-top:8px}
+
+#profile-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:20px;z-index:8000;background:radial-gradient(circle at center,#0f0f0f,#000);visibility:hidden;opacity:0;transition:opacity .35s}
+#profile-screen.active{visibility:visible;opacity:1}
+.profiles-wrapper{display:flex;gap:18px;align-items:center}
+.profile-card{width:140px;height:140px;border-radius:16px;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid transparent;cursor:pointer;transition:.25s;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.profile-card.dimmed{opacity:.3;transform:scale(.94);filter:grayscale(.7)}
+.profile-card.selected{transform:scale(1.08);border-color:var(--xbox);box-shadow:0 0 30px rgba(16,124,16,.35);background:#252525}
+.avatar{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.4rem;color:#fff;margin-bottom:10px}
+.confirm-btn{margin-top:18px;padding:12px 30px;border-radius:26px;border:none;background:var(--xbox);color:white;font-weight:700;cursor:pointer;opacity:0;transform:translateY(12px);transition:.25s}
+.confirm-btn.visible{opacity:1;transform:translateY(0)}
+
+ /* -------------------------
+    CRITICAL CHANGE #1 — touch support / swipe fixes
+    Dodane: -webkit-overflow-scrolling: touch; touch-action: pan-x;
+    Upewnia się, że swipe na iOS/Android działa płynnie.
+    ------------------------- */
+#app-container{
+  -webkit-overflow-scrolling: touch; /* smooth scrolling na iOS */
+  touch-action: pan-x;               /* pozwala na poziomy swipe */
+  display:flex;width:100vw;height:100vh;overflow-x:scroll;scroll-snap-type:x mandatory;scroll-behavior:smooth;opacity:0;transition:opacity .4s
+}
+#app-container.loaded{opacity:1}
+
+/* SLIDE is full viewport width to keep scrolling consistent.
+   Inner content is centered and limited by .slide-inner */
+.day-slide{width:100vw;height:100vh;flex:0 0 100vw;overflow-y:auto;scroll-snap-align:start;display:flex;justify-content:center;padding:calc(var(--safe-top)+20px) 0 calc(var(--safe-bottom)+120px) 0}
+.slide-inner{width:calc(100% - 36px);max-width:900px;padding:0 18px}
+
+.day-header{background:linear-gradient(145deg,var(--card),#151515);padding:18px;border-radius:20px;margin-bottom:12px;border-left:6px solid transparent;box-shadow:0 10px 30px rgba(0,0,0,.35);cursor:pointer;position:relative}
+.day-title{font-size:1.5rem;margin:0}
+.day-sub{color:var(--muted);margin-top:6px;font-size:.9rem}
+
+.exercise-card{background:var(--card);border-radius:14px;padding:12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;border:1px solid rgba(255,255,255,0.03);transition:.12s;cursor:pointer}
+.exercise-card.pressing{transform:scale(.975);background:var(--card-hover);opacity:.95}
+.exercise-card.completed{border-color:var(--legs);background:rgba(48,209,88,.06)}
+.ex-info{flex:1;padding-right:10px}
+.ex-name{font-weight:700;margin-bottom:6px;display:block}
+.ex-stats{display:flex;gap:8px;flex-wrap:wrap}
+.stat-tag{background:rgba(0,0,0,.6);padding:6px 10px;border-radius:8px;font-family:monospace;font-weight:700;font-size:.85rem;color:#fff}
+.info-circle{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--pull);border:none;cursor:pointer}
+
+.logout-btn{position:absolute;right:12px;top:12px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.05);border:none;color:var(--muted);cursor:pointer;font-weight:700}
+
+.dots-nav{position:fixed;left:0;right:0;bottom:calc(var(--safe-bottom)+22px);display:flex;justify-content:center;gap:12px;z-index:2000;pointer-events:none}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25);transition:.25s}
+.dot.active{width:28px;border-radius:6px;background:#fff;box-shadow:0 0 12px rgba(255,255,255,.25);pointer-events:auto}
+
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;padding:18px 20px calc(var(--safe-bottom)+14px);display:flex;justify-content:center;gap:12px;z-index:1500;pointer-events:none}
+.kb-btn{pointer-events:auto;background:linear-gradient(90deg,var(--pull),#005bb5);color:white;padding:12px 20px;border-radius:18px;border:none;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+
+.modal{position:fixed;inset:0;display:none;justify-content:center;align-items:flex-end;background:rgba(0,0,0,.75);z-index:3000;backdrop-filter:blur(6px)}
+.modal.active{display:flex}
+.modal-content{background:#1c1c1e;width:100%;max-height:90vh;border-radius:26px 26px 0 0;padding:18px;overflow:auto;transform:translateY(100%);transition:transform .28s}
+.modal.active .modal-content{transform:translateY(0)}
+.option-btn{width:100%;padding:12px;border-radius:12px;background:var(--card-hover);border:none;color:white;font-weight:700;text-align:left;margin-bottom:10px;cursor:pointer}
+.option-btn.danger{background:rgba(255,69,58,.08);color:var(--danger);border:1px solid rgba(255,69,58,.14)}
+.close-btn{width:100%;padding:12px;border-radius:12px;background:white;color:black;font-weight:800;border:none;cursor:pointer}
+
+.macro-box{background:#000;padding:10px;border-radius:10px;margin-bottom:8px;border-left:4px solid var(--push)}
+textarea{width:100%;height:110px;border-radius:12px;padding:10px;background:#000;border:1px solid #333;color:#fff;resize:none;outline:none}
+
+#rest-timer{position:fixed;left:50%;top:calc(var(--safe-top)+10px);transform:translateX(-50%);background:var(--xbox);padding:8px 18px;border-radius:20px;font-weight:800;display:none;z-index:4000}
+
+@media(min-width:900px){
+  #splash h1{font-size:4.6rem}
+  .profile-card{width:160px;height:160px}
+  .avatar{width:72px;height:72px;font-size:1.6rem}
+}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash" onclick="startApp()">
+  <h1>GymPocket</h1>
+  <p>Dotknij aby rozpocząć</p>
+</div>
+
+<!-- PROFILE SELECT -->
+<div id="profile-screen">
+  <div style="font-weight:700;color:var(--muted);margin-bottom:18px">Wybierz zawodnika</div>
+  <div class="profiles-wrapper">
+    <div class="profile-card" id="card-siwy" onclick="selectProfile('siwy')">
+      <div class="avatar" style="background:linear-gradient(135deg,var(--pull),#5e5ce6)">SW</div>
+      <div style="font-weight:700">Siwy</div>
+    </div>
+    <div class="profile-card" id="card-szymon" onclick="selectProfile('szymon')">
+      <div class="avatar" style="background:linear-gradient(135deg,var(--push),var(--danger))">SZ</div>
+      <div style="font-weight:700">Szymon</div>
+    </div>
+  </div>
+  <button id="confirm-btn" class="confirm-btn" onclick="confirmProfile()">Wczytaj Profil</button>
+</div>
+
+<!-- APP -->
+<div id="app-container"></div>
+<div class="dots-nav" id="dots"></div>
+
+<!-- Bottom -->
+<div class="bottom-nav">
+  <button class="kb-btn" onclick="openKnowledgeBase()">📖 Baza Wiedzy &amp; Dieta</button>
+</div>
+
+<div id="rest-timer">Odpoczynek: <span id="timer-val">195</span>s</div>
+
+<!-- MODALS (info/edit/lib/day/kb) -->
+<div id="modal-info" class="modal" onclick="closeModal('modal-info')">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h2 id="info-name" style="margin:0 0 8px 0"></h2>
+    <div id="info-rating" style="color:#ffd60a;margin-bottom:12px"></div>
+    <div id="info-tech" style="color:#fff;line-height:1.5;margin-bottom:12px"></div>
+    <div id="info-alt" style="color:var(--muted);margin-bottom:16px"></div>
+    <button class="close-btn" onclick="closeModal('modal-info')">Zrozumiałem</button>
+  </div>
+</div>
+
+<div id="modal-edit" class="modal" onclick="closeModal('modal-edit')">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3 id="edit-modal-title" style="margin:0 0 12px 0"></h3>
+    <button class="option-btn" onclick="triggerEditStats()">✎ Edytuj Serie / Powtórzenia</button>
+    <button class="option-btn" onclick="triggerSwap()">⇄ Zamień na alternatywę</button>
+    <div id="remove-area"></div>
+    <button class="option-btn danger" onclick="closeModal('modal-edit')" style="margin-top:8px">Anuluj</button>
+  </div>
+</div>
+
+<div id="modal-lib" class="modal" onclick="closeModal('modal-lib')">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3 style="margin:0 0 12px 0">Biblioteka ćwiczeń</h3>
+    <div id="lib-alternatives-section" style="display:none;margin-bottom:10px">
+      <div style="color:var(--muted);font-weight:700;margin-bottom:6px">Polecane alternatywy</div>
+      <div id="lib-alternatives-list"></div>
+    </div>
+    <div id="lib-list"></div>
+    <button class="close-btn" onclick="closeModal('modal-lib')">Zamknij</button>
+  </div>
+</div>
+
+<div id="modal-day" class="modal" onclick="closeModal('modal-day')">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h2 id="day-modal-title" style="margin:0 0 8px 0"></h2>
+    <div id="day-modal-reqs" style="color:#ccc;background:#000;padding:12px;border-radius:10px;border:1px solid #333;margin-bottom:12px;white-space:pre-line"></div>
+    <div style="color:var(--muted);font-weight:700;margin-bottom:8px">Twoje notatki (zapisują się automatycznie)</div>
+    <textarea id="day-notes-input" placeholder="Wpisz notatki..." oninput="saveNotes()"></textarea>
+    <button class="close-btn" onclick="closeModal('modal-day')" style="margin-top:10px">Zamknij</button>
+  </div>
+</div>
+
+<div id="modal-kb" class="modal" onclick="closeModal('modal-kb')">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h2 style="margin:0 0 12px 0">Baza Wiedzy • Dieta • Suplementy</h2>
+    <div id="kb-content"></div>
+    <button class="close-btn" onclick="closeModal('modal-kb')" style="margin-top:12px">Zamknij</button>
+  </div>
+</div>
+
+<script>
+/* =========================
+   FULL DATA (EX_LIB, WEEK_TEMPLATE, PLANS)
+   (jak w Twojej wersji — nie zmieniam tych danych oprócz synchronizacji Szymon=Siwy)
+   ========================= */
+const EX_LIB = {
+  'bench': { name:"Wyciskanie sztangi leżąc", tech:"Stopy stabilne, łopatki złączone; kontrolowane opuszczanie. Nie odbijaj.", altIds:['incline_db','dips','db_bench'], rating:5, equip:'sztanga' },
+  'incline_db': { name:"Wyciskanie hantli skos +", tech:"Ławka 30-45°, pełne rozciągnięcie na dole.", altIds:['bench','db_bench'], rating:5, equip:'hantle' },
+  'db_bench': { name:"Wyciskanie hantli leżąc", tech:"Lepszy ROM, korekta asymetrii.", altIds:['bench'], rating:5, equip:'hantle' },
+  'flys': { name:"Rozpiętki (brama)", tech:"Izolacja klatki, robione na końcu.", altIds:['incline_db'], rating:4, equip:'brama' },
+
+  'squat': { name:"Przysiad ze sztangą", tech:"Biodra w tył, neutralny kręgosłup; zejście kontrolowane.", altIds:['front_squat','leg_press'], rating:5, equip:'sztanga' },
+  'front_squat': { name:"Przysiad przedni", tech:"Większy nacisk na czwórki.", altIds:['squat'], rating:5, equip:'sztanga' },
+  'leg_press': { name:"Suwnica (leg press)", tech:"Bezpieczniejsza opcja gdy ból odcinka lędźwiowego.", altIds:['squat'], rating:4.5, equip:'maszyna' },
+
+  'rdl': { name:"Martwy ciąg rumuński (RDL)", tech:"Hip-hinge, neutralny kręgosłup, pracuj biodrami.", altIds:['hip_thrust','kb_swing'], rating:5, equip:'sztanga' },
+  'hip_thrust': { name:"Hip Thrust", tech:"Maksymalna izolacja pośladków.", altIds:['rdl'], rating:5, equip:'sztanga' },
+  'kb_swing': { name:"Kettlebell Swing", tech:"Dynamiczne; poprawia moc bioder.", altIds:['rdl'], rating:4, equip:'kettlebell' },
+
+  'deadlift': { name:"Martwy ciąg klasyczny", tech:"Barki nad sztangą; technika priorytet.", altIds:['rdl'], rating:5, equip:'sztanga' },
+  'row': { name:"Wiosłowanie sztangą / T-bar", tech:"Plecy proste, łokcie do bioder.", altIds:['db_row','seated_row'], rating:5, equip:'sztanga' },
+  'db_row': { name:"Wiosłowanie hantlem jednorącz", tech:"Korekta asymetrii, mocne spięcie łopatek.", altIds:['row'], rating:5, equip:'hantle' },
+  'pullup': { name:"Podciąganie na drążku", tech:"Pełny ROM, kontrola opuszczania.", altIds:['latpulldown'], rating:5, equip:'drążek' },
+  'latpulldown': { name:"Ściąganie drążka górnego", tech:"Skalowalna alternatywa dla drążka.", altIds:['pullup'], rating:5, equip:'wyciąg' },
+
+  'ohp': { name:"Wyciskanie nad głowę (OHP)", tech:"Nie przesadzaj z przeprostem w lędźwiach.", altIds:['seated_db_ohp'], rating:5, equip:'sztanga' },
+  'seated_db_ohp': { name:"Wyciskanie hantli siedząc", tech:"Stabilne, dobry dla barków.", altIds:['ohp'], rating:5, equip:'hantle' },
+  'facepull': { name:"Face pulls", tech:"Ciągnij środek liny do wysokości oczu.", altIds:['rear_delt_fly'], rating:4.5, equip:'wyciąg' },
+
+  'dips': { name:"Dipy (poręcze)", tech:"Pochyl tułów by bardziej angażować klatkę.", altIds:['close_grip_bench','diamond_pushups'], rating:4, equip:'poręcze' },
+  'close_grip_bench': { name:"Wyciskanie sztangi wąsko", tech:"Działa triceps i dolną część klatki.", altIds:['dips'], rating:4.5, equip:'sztanga' },
+  'diamond_pushups': { name:"Pompki diamentowe", tech:"Dobra alternatywa bez sprzętu.", altIds:['dips'], rating:4, equip:'ciało' },
+
+  'biceps': { name:"Uginanie ramion (hantle/sztanga)", tech:"Łokcie przy tułowiu, pełne skurcze.", altIds:[], rating:4.5, equip:'hantle' },
+  'triceps': { name:"Prostowanie na wyciągu", tech:"Łokcie stabilne, pracuje tylko przedramię.", altIds:['overhead_ext'], rating:4.5, equip:'wyciąg' },
+  'overhead_ext': { name:"Prostowanie hantli zza głowy", tech:"Dobra opcja jednorącz/oburącz.", altIds:['triceps'], rating:4, equip:'hantle' },
+
+  'leg_curl': { name:"Uginanie nóg (maszyna)", tech:"Kontroluj fazę negatywną.", altIds:['nordic','ghr'], rating:4, equip:'maszyna' },
+  'nordic': { name:"Nordic ham curl", tech:"Bardzo wymagające; świetne na tył uda.", altIds:['leg_curl'], rating:4.5, equip:'ciało' },
+
+  'plank': { name:"Plank + unoszenia nóg", tech:"Napięty brzuch i pośladki; nie zapadaj lędźwi.", altIds:['abwheel'], rating:4, equip:'ciało' },
+  'cardio': { name:"Cardio umiarkowane", tech:"Tętno w strefie tlenowej.", altIds:[], rating:3, equip:'cardio' }
+};
+
+const WEEK_TEMPLATE = [
+  { id:"d1", dayName:"Poniedziałek", type:"workout", title:"Trening • Poniedziałek", theme:"push", subtitle:"Klatka + Nogi + Triceps", key:'pon' },
+  { id:"d2", dayName:"Wtorek", type:"rest", title:"Aktywna regeneracja", theme:"rest", subtitle:"Spacer, mobilność", key:'wto' },
+  { id:"d3", dayName:"Środa", type:"workout", title:"Trening • Środa", theme:"pull", subtitle:"Plecy + Barki + Biceps", key:'sro' },
+  { id:"d4", dayName:"Czwartek", type:"rest", title:"Dzień wolny", theme:"rest", subtitle:"Regeneracja" , key:'czw'},
+  { id:"d5", dayName:"Piątek", type:"workout", title:"Trening • Piątek", theme:"legs", subtitle:"Full-body / Detale", key:'pia'},
+  { id:"d6", dayName:"Sobota", type:"rest", title:"Aktywna regeneracja", theme:"rest", subtitle:"Lekkie cardio" , key:'sob'},
+  { id:"d7", dayName:"Niedziela", type:"rest", title:"Dzień wolny", theme:"rest", subtitle:"Meal prep / Odpoczynek", key:'nie'}
+];
+
+const PLAN_SIWY = {
+  "d1":[ {id:'bench',sets:'5',reps:'8-10'},{id:'squat',sets:'5',reps:'8-10'},{id:'incline_db',sets:'4',reps:'8-12'},{id:'rdl',sets:'4',reps:'8-12'},{id:'dips',sets:'4',reps:'10-15'},{id:'leg_curl',sets:'3',reps:'12-15'},{id:'plank',sets:'3',reps:'60s'} ],
+  "d3":[ {id:'row',sets:'5',reps:'8-10'},{id:'pullup',sets:'5',reps:'MAX'},{id:'ohp',sets:'4',reps:'8-10'},{id:'facepull',sets:'3',reps:'12-15'},{id:'biceps',sets:'4',reps:'8-12'},{id:'triceps',sets:'4',reps:'10-12'},{id:'cardio',sets:'1',reps:'15 min'} ],
+  "d5":[ {id:'deadlift',sets:'4',reps:'6-8'},{id:'bench',sets:'3-4',reps:'8-12'},{id:'lunge',sets:'3-4',reps:'8-12 na nogę'},{id:'pullover',sets:'3',reps:'10-12'} ]
+};
+const PLAN_SZYMON = {
+  "d1":[ {id:'bench',sets:'4',reps:'6-8'},{id:'squat',sets:'4',reps:'6-8'},{id:'incline_db',sets:'3',reps:'8-10'},{id:'rdl',sets:'3',reps:'8-10'},{id:'dips',sets:'3',reps:'MAX'},{id:'leg_curl',sets:'3',reps:'12-15'},{id:'plank',sets:'3',reps:'60s'} ],
+  "d3":[ {id:'row',sets:'4',reps:'6-8'},{id:'pullup',sets:'4',reps:'MAX'},{id:'ohp',sets:'3',reps:'6-8'},{id:'facepull',sets:'3',reps:'12-15'},{id:'biceps',sets:'3',reps:'8-10'},{id:'triceps',sets:'3',reps:'10-12'},{id:'cardio',sets:'1',reps:'15 min'} ],
+  "d5":[ {id:'deadlift',sets:'3',reps:'4-6'},{id:'bench',sets:'3-4',reps:'8-12'},{id:'lunge',sets:'3-4',reps:'8-12 na nogę'},{id:'pullover',sets:'3',reps:'10-12'} ]
+};
+
+/* =========================
+   CRITICAL CHANGE #4 — ensure plans are 1:1
+   Jeśli PLAN_SIWY i PLAN_SZYMON różnią się, nadpisujemy PLAN_SZYMON kopią PLAN_SIWY
+   (w ten sposób wymuszamy że "plan u szymona i siwego musi być taki sam, 1:1")
+   ========================= */
+(function ensurePlansSync(){
+  try{
+    // Cel: wymusić parytet 1:1 — kopiujemy zawartość PLAN_SIWY do PLAN_SZYMON
+    // zamiast próbować reasignować binding (który jest const).
+    Object.keys(PLAN_SIWY).forEach(dayKey => {
+      // Zamiana/utworzenie właściwości w obiekcie PLAN_SZYMON
+      // (mutacja właściwości jest dozwolona nawet gdy PLAN_SZYMON jest const).
+      PLAN_SZYMON[dayKey] = JSON.parse(JSON.stringify(PLAN_SIWY[dayKey]));
+    });
+    console.info('ensurePlansSync: PLAN_SZYMON zaktualizowany na podstawie PLAN_SIWY (1:1).');
+  }catch(e){
+    console.warn('ensurePlansSync error', e);
+  }
+})();
+
+/* =========================
+   STAN / STORAGE
+   ========================= */
+let currentProfile = null;
+let state = { plan: [], notes: {}, completed: {} };
+let activeEdit = { dayIdx:null, exIdx:null };
+let longPressTimer = null;
+let pressing=false;
+let timerInterval = null;
+let lastTap = {}; // mapa ostatnich tapów dla double-tap per card
+const DOUBLE_TAP_MS = 300; // double tap threshold in ms
+
+function storageKey(p){ return `gym_v1_${p}`; }
+function saveState(){ if(!currentProfile) return; localStorage.setItem(storageKey(currentProfile), JSON.stringify(state)); }
+
+/* =========================
+   CRITICAL CHANGE #2 — REPLACE loadState(profile) WITH THIS DEFENSIVE VERSION
+   (normalizuje plan i uzupełnia brakujące dni/ćwiczenia z domyślnych planów)
+   ========================= */
+function loadState(profile) {
+  const key = storageKey(profile);
+  const raw = localStorage.getItem(key);
+
+  // Force parity: if profile is 'szymon', use SIWY as canonical default
+  const defaultPlanObj = (profile === 'szymon') ? PLAN_SIWY : PLAN_SZYMON;
+  const forceParity = (profile === 'szymon');
+
+  // Jeśli brak zapisu — zbuduj domyślny plan i wyjdź
+  if (!raw) {
+    buildWeeklyPlan(profile);
+    return;
+  }
+
+  // Spróbuj sparsować zapis — jeśli nie da się, odbuduj domyślne
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    console.warn('loadState: błąd parsowania localStorage, używam domyślnego planu', e);
+    buildWeeklyPlan(profile);
+    return;
+  }
+
+  // Bezpieczne pola
+  state = parsed || {};
+  state.notes = state.notes || {};
+  state.completed = state.completed || {};
+  state.plan = Array.isArray(state.plan) ? state.plan.slice() : [];
+
+  // Normalizacja każdego dnia wg WEEK_TEMPLATE
+  const normalized = WEEK_TEMPLATE.map(dayTemplate => {
+    const storedDay = state.plan.find(d => d.id === dayTemplate.id);
+
+    // Jeśli wymuszamy parytet dla Szymona -> IGNORUJ zapisane storedDay i bierz z defaultPlanObj (czyli PLAN_SIWY)
+    if (!forceParity && storedDay && Array.isArray(storedDay.exercises) && storedDay.exercises.length > 0) {
+      // uzupełnij meta pola dnia
+      storedDay.title = storedDay.title || dayTemplate.title;
+      storedDay.subtitle = storedDay.subtitle || dayTemplate.subtitle;
+      storedDay.type = dayTemplate.type;
+      storedDay.theme = dayTemplate.theme;
+      storedDay.reqs = storedDay.reqs || (dayTemplate.type === 'workout' ? 'Trenuj według planu — patrz serie/powt. • Focus: technika' : 'Regeneruj: spacer/mobilność');
+
+      // uzupełnij każde ćwiczenie (libId/tag/rating/sets/reps)
+      storedDay.exercises = storedDay.exercises.map(ex => {
+        if (ex.libId && EX_LIB[ex.libId]) {
+          ex.tag = ex.tag || EX_LIB[ex.libId].equip || '';
+          ex.rating = ex.rating || EX_LIB[ex.libId].rating || 0;
+        } else if (!ex.libId && ex.name) {
+          const match = Object.keys(EX_LIB).find(k => EX_LIB[k].name === ex.name);
+          if (match) {
+            ex.libId = match;
+            ex.tag = ex.tag || EX_LIB[match].equip || '';
+            ex.rating = ex.rating || EX_LIB[match].rating || 0;
+          } else {
+            ex.libId = ex.libId || ('custom_' + (Date.now() + Math.floor(Math.random()*1000)));
+            ex.tag = ex.tag || '';
+            ex.rating = ex.rating || 0;
+          }
+        } else {
+          ex.libId = ex.libId || ('custom_' + (Date.now() + Math.floor(Math.random()*1000)));
+          ex.tag = ex.tag || '';
+          ex.rating = ex.rating || 0;
+        }
+        ex.sets = ex.sets || '3';
+        ex.reps = ex.reps || '10';
+        return ex;
+      });
+
+      return storedDay;
+    }
+
+    // brak zapisanego dnia, brak ćwiczeń lub wymuszamy parytet -> wyciągnij z domyślnego planu (defaultPlanObj)
+    const listFromDefault = (defaultPlanObj[dayTemplate.id] || []);
+    const exercises = listFromDefault.map(ex => ({
+      name: EX_LIB[ex.id] ? EX_LIB[ex.id].name : ex.id,
+      sets: ex.sets,
+      reps: ex.reps,
+      libId: ex.id,
+      tag: EX_LIB[ex.id] ? EX_LIB[ex.id].equip || '' : '',
+      rating: EX_LIB[ex.id] ? EX_LIB[ex.id].rating || 0 : 0
+    }));
+
+    return {
+      id: dayTemplate.id,
+      title: dayTemplate.title,
+      subtitle: dayTemplate.subtitle,
+      type: dayTemplate.type,
+      theme: dayTemplate.theme,
+      reqs: (dayTemplate.type === 'workout' ? 'Trenuj według planu — patrz serie/powt. • Focus: technika' : 'Regeneruj: spacer/mobilność'),
+      exercises: exercises
+    };
+  });
+
+  // ustaw znormalizowany plan i zapisz
+  state.plan = normalized;
+  saveState();
+}
+
+/* =========================
+   HELPERS
+   ========================= */
+function getWeekDates(){
+  // Zwróć tablicę 7 dat (pon-niedz) bez mutowania globalnej daty
+  const dates = [];
+  const now = new Date();
+  const day = now.getDay(); // 0 niedziela
+  const monday = new Date(now);
+  const diffToMon = day === 0 ? -6 : 1 - day; // przesunięcie do poniedziałku
+  monday.setDate(now.getDate() + diffToMon);
+  for(let i=0;i<7;i++){
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push(d.toLocaleDateString('pl-PL',{day:'numeric', month:'short'}));
+  }
+  return dates;
+}
+
+/* =========================
+   Build weekly plan
+   ========================= */
+function buildWeeklyPlan(profile){
+  const planObj = profile==='siwy'? PLAN_SIWY : PLAN_SZYMON;
+  state.plan = WEEK_TEMPLATE.map(day=>{
+    const copy = { id: day.id, title: day.title, subtitle: day.subtitle, type: day.type, theme: day.theme, reqs: (day.type==='workout' ? 'Trenuj według planu — patrz serie/powt. • Focus: technika' : 'Regeneruj: spacer/mobilność'), exercises: [] };
+    if(day.type==='workout'){
+      const exList = planObj[day.id] || [];
+      copy.exercises = exList.map(ex=> ({ name: EX_LIB[ex.id]?.name || ex.id, sets: ex.sets, reps: ex.reps, libId: ex.id, tag: EX_LIB[ex.id]?.equip || '', rating: EX_LIB[ex.id]?.rating || 0 }) );
+    }
+    return copy;
+  });
+  state.notes = state.notes || {};
+  state.completed = state.completed || {};
+  saveState();
+}
+
+/* =========================
+   UI flow
+   ========================= */
+function startApp(){ document.getElementById('splash').style.opacity='0'; setTimeout(()=>{ document.getElementById('splash').style.display='none'; document.getElementById('profile-screen').classList.add('active'); },400); }
+function selectProfile(p){
+  document.querySelectorAll('.profile-card').forEach(c=>c.classList.remove('selected','dimmed'));
+  document.getElementById(`card-${p}`).classList.add('selected');
+  if(p==='siwy') document.getElementById('card-szymon').classList.add('dimmed'); else document.getElementById('card-siwy').classList.add('dimmed');
+  currentProfile = p;
+  document.getElementById('confirm-btn').classList.add('visible');
+  document.getElementById('confirm-btn').innerText = `Wczytaj: ${p.charAt(0).toUpperCase()+p.slice(1)}`;
+}
+function confirmProfile(){
+  if(!currentProfile) return;
+  loadState(currentProfile);
+  document.getElementById('profile-screen').style.opacity='0';
+
+  // Ustaw flagę — renderApp nie będzie przywracać prevScroll jednorazowo,
+  // dzięki temu nasze późniejsze przewinięcie do "dzisiaj" nie zostanie nadpisane.
+  window._skipRestoreOnNextRender = true;
+
+  setTimeout(()=>{
+    document.getElementById('profile-screen').style.display='none';
+    renderApp();
+    document.getElementById('app-container').classList.add('loaded');
+    document.getElementById('dots').classList.add('visible');
+    // teraz przewiń do dzisiaj (flaga powyżej zapobiegnie nadpisaniu pozycji)
+    goToTodayAfterProfileLoad();
+  },300);
+}
+function logout(){
+  saveState();
+  currentProfile=null;
+  state={plan:[],notes:{},completed:{}};
+  activeEdit={dayIdx:null,exIdx:null};
+  document.getElementById('app-container').innerHTML='';
+  document.getElementById('app-container').classList.remove('loaded');
+  document.getElementById('dots').innerHTML='';
+  document.getElementById('dots').classList.remove('visible');
+  const pScreen=document.getElementById('profile-screen');
+  pScreen.style.display='flex';
+  setTimeout(()=>pScreen.style.opacity='1',10);
+  document.querySelectorAll('.profile-card').forEach(c=>c.classList.remove('selected','dimmed'));
+  document.getElementById('confirm-btn').classList.remove('visible');
+}
+
+/* =========================
+   RENDER (robustny)
+   ========================= */
+function renderApp(){
+  const container = document.getElementById('app-container');
+  const dots = document.getElementById('dots');
+  const prevScroll = container.scrollLeft || 0;
+  container.innerHTML=''; dots.innerHTML='';
+
+  const dates = getWeekDates();
+  state.plan.forEach((day, idx) => {
+    // dot
+    const dot = document.createElement('div'); dot.className = 'dot ' + (idx===0 ? 'active' : ''); dots.appendChild(dot);
+    // slide
+    const slide = document.createElement('div'); slide.className = 'day-slide';
+    const inner = document.createElement('div'); inner.className = 'slide-inner';
+    let themeColor = (day.theme==='push')? 'var(--push)':(day.theme==='pull')? 'var(--pull)':(day.theme==='legs')? 'var(--legs)': '#5e5ce6';
+    const headerHTML = `<div class="day-header" style="border-left-color:${themeColor}" onclick="openDayModal(${idx})">
+      <div class="day-title">${day.title}</div>
+      <div class="day-sub">${day.subtitle} • ${dates[idx]}</div>
+      <button class="logout-btn" onclick="event.stopPropagation(); logout()">⤴</button>
+    </div>`;
+    inner.insertAdjacentHTML('beforeend', headerHTML);
+
+    // exercises
+    if(day.type === 'workout' && day.exercises && day.exercises.length){
+      day.exercises.forEach((ex,eIdx) => {
+        const doneKey = `${dates[idx]}_${ex.libId}_${currentProfile}`;
+        const done = !!state.completed[doneKey];
+        const exCard = document.createElement('div');
+        exCard.className = 'exercise-card' + (done ? ' completed' : '');
+        exCard.id = `ex-${idx}-${eIdx}`;
+        exCard.innerHTML = `<div class="ex-info"><span class="ex-name">${ex.name}</span>
+            <div class="ex-stats"><div class="stat-tag"><span>S:</span>${ex.sets}</div><div class="stat-tag"><span>P:</span>${ex.reps}</div></div>
+          </div>
+          <button class="info-circle">i</button>`;
+
+        // use pointer events to unify touch/mouse — supports double-tap + long-press
+        exCard.addEventListener('pointerdown', (ev)=> startPress(ev, idx, eIdx));
+        exCard.addEventListener('pointerup', (ev)=> endPress(ev, idx, eIdx));
+        exCard.addEventListener('pointercancel', ()=> cancelPress());
+        exCard.addEventListener('pointerleave', ()=> cancelPress());
+
+        // info button
+        exCard.querySelector('.info-circle').onclick = (ev)=> { ev.stopPropagation(); showInfo(idx, eIdx); };
+        inner.appendChild(exCard);
+      });
+    } else {
+      inner.insertAdjacentHTML('beforeend', `<div class="exercise-card" style="border-color:var(--pull)"><div style="font-weight:700">Aktywność dowolna</div><div style="color:var(--muted)">Spacer, rolka, ruch</div></div>`);
+    }
+
+    inner.insertAdjacentHTML('beforeend', `<button class="option-btn" onclick="openLibForAdding(${idx})" style="background:transparent;border:2px dashed rgba(255,255,255,0.06);color:var(--muted);margin-top:12px">+ Dodaj ćwiczenie</button>`);
+    slide.appendChild(inner);
+    container.appendChild(slide);
+  });
+
+  // robust handler: compute closest slide by bounding rect relative to container
+  const slides = Array.from(container.querySelectorAll('.day-slide'));
+  const dotEls = Array.from(document.querySelectorAll('.dot'));
+  function updateDotsByScroll(){
+    const containerRect = container.getBoundingClientRect();
+    let closest = 0, minDiff = Infinity;
+    slides.forEach((s,i)=>{
+      const r = s.getBoundingClientRect();
+      const diff = Math.abs(r.left - containerRect.left);
+      if(diff < minDiff){ minDiff = diff; closest = i; }
+    });
+    dotEls.forEach((d,i)=> d.classList.toggle('active', i===closest));
+  }
+  // attach debounced via rAF
+  let rafId = null;
+  const scrollHandler = ()=> { if(rafId) cancelAnimationFrame(rafId); rafId = requestAnimationFrame(updateDotsByScroll); };
+  // remove previous if any
+  if(container._scrollHandler) container.removeEventListener('scroll', container._scrollHandler);
+  container._scrollHandler = scrollHandler;
+  container.addEventListener('scroll', container._scrollHandler);
+
+  // restore previous scroll (async, po renderze)
+  const skipRestore = !!window._skipRestoreOnNextRender;
+requestAnimationFrame(()=>{
+  if (!skipRestore) {
+    container.scrollLeft = prevScroll;
+  } else {
+    // wyczyść flagę (jednorazowe użycie)
+    try { window._skipRestoreOnNextRender = false; } catch(e){}
+  }
+  if(typeof updateDotsByScroll === 'function') updateDotsByScroll();
+});
+}
+
+/* =========================
+   GESTURE / DOUBLE-TAP / LONG-PRESS logic
+   - double-tap => toggle completed (cross out)
+   - long-press (600ms) => open edit modal
+   - uncrossing cancels timer
+   ========================= */
+function startPress(ev, dIdx, eIdx){
+  pressing=true;
+  const card = document.getElementById(`ex-${dIdx}-${eIdx}`); if(card) card.classList.add('pressing');
+  // start long press for edit (600ms)
+  longPressTimer = setTimeout(()=>{ if(pressing){ openEditModal(dIdx,eIdx); } cancelPress(); }, 600);
+}
+function endPress(ev, dIdx, eIdx){
+  clearTimeout(longPressTimer);
+  cancelPress();
+
+  const cardId = `ex-${dIdx}-${eIdx}`;
+  const now = Date.now();
+  const last = lastTap[cardId] || 0;
+
+  if (now - last <= DOUBLE_TAP_MS) {
+    // double tap detected -> toggle completed
+    lastTap[cardId] = 0;
+    toggleCompleted(dIdx,eIdx);
+  } else {
+    // register this tap as first tap, clear after threshold
+    lastTap[cardId] = now;
+    setTimeout(()=>{ if(lastTap[cardId] && (Date.now() - lastTap[cardId]) >= DOUBLE_TAP_MS) lastTap[cardId]=0; }, DOUBLE_TAP_MS + 50);
+  }
+}
+function cancelPress(){
+  pressing=false;
+  clearTimeout(longPressTimer);
+  // remove pressing class from any card
+  document.querySelectorAll('.exercise-card.pressing').forEach(c=>c.classList.remove('pressing'));
+}
+
+function toggleCompleted(dIdx,eIdx){
+  const dates = getWeekDates();
+  const ex = state.plan[dIdx] && state.plan[dIdx].exercises && state.plan[dIdx].exercises[eIdx];
+  if(!ex) return;
+  const doneKey = `${dates[dIdx]}_${ex.libId}_${currentProfile}`;
+  state.completed[doneKey] = !state.completed[doneKey];
+  saveState();
+  if(state.completed[doneKey]){
+    startTimer(195); // 195 seconds as requested
+  } else {
+    stopTimer(); // odkreślenie przerywa i kasuje timer
+  }
+  renderApp();
+}
+
+/* =========================
+   EDIT modal / actions (bez zmian w logice)
+   ========================= */
+function openEditModal(dIdx,eIdx){
+  activeEdit={dayIdx:dIdx,exIdx:eIdx};
+  const ex = state.plan[dIdx].exercises[eIdx];
+  document.getElementById('edit-modal-title').innerText = ex.name;
+  document.getElementById('remove-area').innerHTML = `<button class="option-btn danger" onclick="removeExercise()">🗑 Usuń ćwiczenie</button>`;
+  document.getElementById('modal-edit').classList.add('active');
+}
+function triggerEditStats(){
+  const ex = state.plan[activeEdit.dayIdx].exercises[activeEdit.exIdx];
+  const s = prompt("Ile serii?", ex.sets); if(s===null) return;
+  const p = prompt("Ile powtórzeń?", ex.reps); if(p===null) return;
+  ex.sets = s; ex.reps = p; saveState(); renderApp(); closeModal('modal-edit');
+}
+function triggerSwap(){
+  closeModal('modal-edit');
+  const current = state.plan[activeEdit.dayIdx].exercises[activeEdit.exIdx];
+  const libEntry = EX_LIB[current.libId] || null;
+  const suggested = libEntry ? (libEntry.altIds || []) : [];
+  openLibrary(suggested, (sel)=>{
+    current.name = sel.name; current.libId = sel.id; current.tag = sel.equip || '';
+    saveState(); renderApp();
+  });
+}
+function removeExercise(){ state.plan[activeEdit.dayIdx].exercises.splice(activeEdit.exIdx,1); saveState(); renderApp(); closeModal('modal-edit'); }
+
+/* =========================
+   Library / Add custom
+   ========================= */
+function openLibForAdding(dayIdx){
+  activeEdit.dayIdx = dayIdx;
+  openLibrary(null, (sel)=>{
+    state.plan[dayIdx].exercises.push({ name: sel.name, sets:'3', reps:'10', libId: sel.id, tag: sel.equip||'', rating: sel.rating||0 });
+    saveState(); renderApp();
+  });
+}
+function openLibrary(suggestedIds, onSelect){
+  const altSec = document.getElementById('lib-alternatives-section');
+  const altList = document.getElementById('lib-alternatives-list');
+  const main = document.getElementById('lib-list');
+  altList && (altList.innerHTML='');
+  main && (main.innerHTML='');
+  document.getElementById('modal-lib').classList.add('active');
+  const custom = document.createElement('button'); custom.className='option-btn'; custom.innerText='➕ Stwórz własne ćwiczenie';
+  custom.onclick = ()=>{ const name = prompt("Nazwa ćwiczenia:"); if(!name) return; onSelect({ id:'custom_'+Date.now(), name:name, altIds:[], rating:0 }); closeModal('modal-lib'); };
+  main.appendChild(custom);
+  if(suggestedIds && suggestedIds.length){
+    altSec.style.display='block';
+    suggestedIds.forEach(id=>{ const e=EX_LIB[id]; if(e) altList.appendChild(createLibBtn(Object.assign({id:id},e), onSelect)); });
+  } else altSec.style.display='none';
+  Object.keys(EX_LIB).forEach(k=>{ if(suggestedIds && suggestedIds.includes(k)) return; main.appendChild(createLibBtn(Object.assign({id:k},EX_LIB[k]), onSelect)); });
+}
+function createLibBtn(ex,onSelect){
+  const btn = document.createElement('button'); btn.className='option-btn';
+  btn.innerHTML = `<div style="text-align:left"><strong>${ex.name}</strong><div style="color:var(--muted);font-size:.9rem">${ex.equip||''}</div></div><div style="color:#ffd60a;font-weight:800">★${ex.rating||0}</div>`;
+  btn.onclick = ()=>{ onSelect(Object.assign({id:ex.id},ex)); closeModal('modal-lib'); };
+  return btn;
+}
+
+/* =========================
+   INFO / DAY modal / NOTES / TIMER / KB
+   ========================= */
+function showInfo(dIdx,eIdx){
+  const ex = state.plan[dIdx].exercises[eIdx];
+  const lib = EX_LIB[ex.libId] || { name: ex.name, tech:'Brak opisu', altIds:[] };
+  document.getElementById('info-name').innerText = lib.name;
+  document.getElementById('info-rating').innerText = '★'.repeat(Math.floor(lib.rating||0));
+  document.getElementById('info-tech').innerText = lib.tech || ex.note || 'Brak opisu techniki.';
+  const altText = (lib.altIds && lib.altIds.length) ? 'Alternatywy: ' + lib.altIds.map(id => EX_LIB[id]?.name || id).join(', ') : 'Brak alternatyw w bibliotece.';
+  document.getElementById('info-alt').innerText = altText;
+  document.getElementById('modal-info').classList.add('active');
+}
+function openDayModal(dIdx){
+  activeEdit.dayIdx = dIdx;
+  const d = state.plan[dIdx];
+  document.getElementById('day-modal-title').innerText = d.title;
+  document.getElementById('day-modal-reqs').innerText = d.reqs || '';
+  document.getElementById('day-notes-input').value = state.notes[d.id] || '';
+  document.getElementById('modal-day').classList.add('active');
+}
+function saveNotes(){ const id = state.plan[activeEdit.dayIdx].id; state.notes[id] = document.getElementById('day-notes-input').value; saveState(); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+
+/* =========================
+   Rest Timer (global) — start(195s) / stop
+   - jeśli odkreślisz ćwiczenie timer przestaje liczyć
+   ========================= */
+function startTimer(seconds = 195){
+  stopTimer();
+  let t = seconds;
+  const el = document.getElementById('rest-timer');
+  document.getElementById('timer-val').innerText = t;
+  el.style.display = 'block';
+  timerInterval = setInterval(()=>{
+    t--;
+    document.getElementById('timer-val').innerText = t;
+    if(t<=0) stopTimer();
+  },1000);
+}
+function stopTimer(){
+  clearInterval(timerInterval);
+  timerInterval = null;
+  document.getElementById('rest-timer').style.display='none';
+}
+
+// Wywołaj dopiero po wybraniu profilu — przewiń do dzisiejszego dnia.
+// Retry jeśli slajdy jeszcze nie istnieją (renderApp jeszcze nie zakończył).
+function goToTodayAfterProfileLoad(retries = 0) {
+  // wymuszamy, że funkcja działa tylko wtedy, gdy wybrano profil
+  if (!currentProfile) return;
+
+  const container = document.getElementById('app-container');
+  if (!container) return;
+
+  const slides = Array.from(container.querySelectorAll('.day-slide'));
+  // jeśli jeszcze nie wyrenderowano slajdów -> retry (max 10 prób)
+  if (slides.length === 0) {
+    if (retries < 10) {
+      return setTimeout(() => goToTodayAfterProfileLoad(retries + 1), 70);
+    }
+    return;
+  }
+
+  // oblicz index dnia tygodnia (poniedziałek = 0)
+  const now = new Date();
+  const day = now.getDay(); // 0 niedziela
+  const idx = day === 0 ? 6 : day - 1;
+
+  // obrona przed out-of-range
+  const target = slides[idx] || slides[0];
+  try {
+    target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+  } catch (e) {
+    // fallback: manualny offset
+    container.scrollLeft = (target.offsetLeft || (idx * container.clientWidth));
+  }
+
+  // odśwież dots / stan pagera po krótkim delay'u
+  setTimeout(() => {
+    if (container._scrollHandler) container._scrollHandler();
+    // opcjonalnie: dodaj klasę wizualną do dzisiejszego headera
+    // usuń wcześniejsze markery
+    document.querySelectorAll('.day-header.today').forEach(h => h.classList.remove('today'));
+    const header = target.querySelector('.day-header');
+    if (header) header.classList.add('today');
+  }, 260);
+}
+
+/* =========================
+   KNOWLEDGE / KB
+   ========================= */
+const KNOWLEDGE = {
+  siwy: `<div class="macro-box"><strong>Cel:</strong> Mały, stabilny przyrost masy<br><strong>TDEE:</strong> ~3373 kcal → <strong>Cel:</strong> 3573 kcal</div>
+         <div class="macro-box" style="border-left-color:var(--pull)"><strong>Makro:</strong><br>🥩 Białko: 210g<br>🥑 Tłuszcze: 99g<br>🍚 Węglowodany: 460g</div>
+         <p style="color:var(--muted)">Kreatyna: 5g codziennie. Woda: ~4.5-5.5 L/dzień. Sen: 8-10 h.</p>`,
+  szymon:`<div class="macro-box"><strong>Cel:</strong> Agresywny przyrost masy<br><strong>TDEE:</strong> ~2700 kcal → <strong>Cel:</strong> 3050 kcal</div>
+         <div class="macro-box" style="border-left-color:var(--push)"><strong>Makro:</strong><br>🥩 Białko: 160g<br>🥑 Tłuszcze: 75g<br>🍚 Węglowodany: 435g</div>
+         <p style="color:var(--muted)">Kreatyna: 5g codziennie. Woda: ~3-4 L/dzień. Sen: 8-10 h.</p>`
+};
+function openKnowledgeBase(){ if(!currentProfile) return; document.getElementById('kb-content').innerHTML = KNOWLEDGE[currentProfile]||'Brak danych'; document.getElementById('modal-kb').classList.add('active'); }
+
+/* =========================
+   scrollToToday — używa offsetLeft slajdu
+   (już wywoływane w confirmProfile AFTER renderApp)
+   Zmienione: retry jeśli slides jeszcze niedostępne
+   ========================= */
+function scrollToToday(retries = 0){
+  const container = document.getElementById('app-container');
+  if(!container) return;
+  const slides = Array.from(container.querySelectorAll('.day-slide'));
+  if(slides.length === 0){
+    if(retries < 6) return setTimeout(()=>scrollToToday(retries+1), 80);
+    return;
+  }
+  const day = (new Date()).getDay();
+  const idx = day === 0 ? 6 : day - 1;
+  if (slides[idx]) {
+    const left = slides[idx].offsetLeft;
+    // prefer smooth scroll; scroll-snap will align if enabled
+    try{ container.scrollTo({ left: left, behavior: 'smooth' }); } catch(e){ container.scrollLeft = left; }
+    // update dots immediately after scroll
+    setTimeout(()=>{ if(container._scrollHandler) container._scrollHandler(); }, 220);
+  }
+}
+
+/* expose */
+window.startApp = startApp;
+window.selectProfile = selectProfile;
+window.confirmProfile = confirmProfile;
+window.openDayModal = openDayModal;
+window.openLibForAdding = openLibForAdding;
+window.openKnowledgeBase = openKnowledgeBase;
+window.closeModal = closeModal;
+
+/* boot */
+document.addEventListener('DOMContentLoaded', ()=>{ /* ready */ });
+</script>
+</body>
+</html>
