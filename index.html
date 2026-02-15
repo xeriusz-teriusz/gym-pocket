@@ -186,41 +186,58 @@ textarea{width:100%;height:110px;border-radius:12px;padding:10px;background:#000
    (jak w Twojej wersji — nie zmieniam tych danych oprócz synchronizacji Szymon=Siwy)
    ========================= */
 const EX_LIB = {
-  'bench': { name:"Wyciskanie sztangi leżąc", tech:"Stopy stabilne, łopatki złączone; kontrolowane opuszczanie. Nie odbijaj.", altIds:['incline_db','dips','db_bench'], rating:5, equip:'sztanga' },
-  'incline_db': { name:"Wyciskanie hantli skos +", tech:"Ławka 30-45°, pełne rozciągnięcie na dole.", altIds:['bench','db_bench'], rating:5, equip:'hantle' },
-  'db_bench': { name:"Wyciskanie hantli leżąc", tech:"Lepszy ROM, korekta asymetrii.", altIds:['bench'], rating:5, equip:'hantle' },
-  'flys': { name:"Rozpiętki (brama)", tech:"Izolacja klatki, robione na końcu.", altIds:['incline_db'], rating:4, equip:'brama' },
+  'bench': { name:"Wyciskanie sztangi leżąc", tech:"Stopy stabilne, łopatki złączone; kontrolowane opuszczanie. Nie odbijaj.", altIds:['incline_db','db_bench','close_grip_bench'], rating:5, equip:'sztanga' },
+  'incline_db': { name:"Wyciskanie hantli skos +", tech:"Ławka 25–35°, pełne rozciągnięcie na dole.", altIds:['bench','db_bench'], rating:5, equip:'hantle' },
+  'db_bench': { name:"Wyciskanie hantli leżąc", tech:"Lepszy ROM, korekta asymetrii.", altIds:['bench','incline_db'], rating:5, equip:'hantle' },
+  'flys': { name:"Rozpiętki (cable fly)", tech:"Kontrolowane rozciągnięcie i ściskanie klatki.", altIds:['db_fly','pec_deck'], rating:4, equip:'brama' },
 
-  'squat': { name:"Przysiad ze sztangą", tech:"Biodra w tył, neutralny kręgosłup; zejście kontrolowane.", altIds:['front_squat','leg_press'], rating:5, equip:'sztanga' },
-  'front_squat': { name:"Przysiad przedni", tech:"Większy nacisk na czwórki.", altIds:['squat'], rating:5, equip:'sztanga' },
-  'leg_press': { name:"Suwnica (leg press)", tech:"Bezpieczniejsza opcja gdy ból odcinka lędźwiowego.", altIds:['squat'], rating:4.5, equip:'maszyna' },
+  'squat': { name:"Przysiad ze sztangą (back squat)", tech:"Biodra w tył, neutralny kręgosłup; zejście kontrolowane.", altIds:['front_squat','leg_press','goblet_squat'], rating:5, equip:'sztanga' },
+  'front_squat': { name:"Przysiad przedni (front squat)", tech:"Większy nacisk na czwórki.", altIds:['squat'], rating:5, equip:'sztanga' },
+  'leg_press': { name:"Suwnica (leg press)", tech:"Bezpieczniejsza opcja gdy ból lędźwi.", altIds:['squat','hack_squat'], rating:4.5, equip:'maszyna' },
+  'leg_extension': { name:"Prostowanie nóg (leg extension)", tech:"Izolacja czworogłowych; kontroluj blok.", altIds:[], rating:4, equip:'maszyna' },
 
-  'rdl': { name:"Martwy ciąg rumuński (RDL)", tech:"Hip-hinge, neutralny kręgosłup, pracuj biodrami.", altIds:['hip_thrust','kb_swing'], rating:5, equip:'sztanga' },
+  'rdl': { name:"Martwy ciąg rumuński (RDL)", tech:"Hip-hinge, neutralny kręgosłup, pracuj biodrami.", altIds:['hip_thrust','single_leg_rdl'], rating:5, equip:'sztanga' },
   'hip_thrust': { name:"Hip Thrust", tech:"Maksymalna izolacja pośladków.", altIds:['rdl'], rating:5, equip:'sztanga' },
   'kb_swing': { name:"Kettlebell Swing", tech:"Dynamiczne; poprawia moc bioder.", altIds:['rdl'], rating:4, equip:'kettlebell' },
 
   'deadlift': { name:"Martwy ciąg klasyczny", tech:"Barki nad sztangą; technika priorytet.", altIds:['rdl'], rating:5, equip:'sztanga' },
   'row': { name:"Wiosłowanie sztangą / T-bar", tech:"Plecy proste, łokcie do bioder.", altIds:['db_row','seated_row'], rating:5, equip:'sztanga' },
   'db_row': { name:"Wiosłowanie hantlem jednorącz", tech:"Korekta asymetrii, mocne spięcie łopatek.", altIds:['row'], rating:5, equip:'hantle' },
-  'pullup': { name:"Podciąganie na drążku", tech:"Pełny ROM, kontrola opuszczania.", altIds:['latpulldown'], rating:5, equip:'drążek' },
+  'seated_row': { name:"Wiosłowanie siedząc (wyciąg)", tech:"Izolacja środkowych pleców; kontrola ruchu.", altIds:['row','db_row'], rating:4.5, equip:'wyciąg' },
+  'pullup': { name:"Podciąganie na drążku", tech:"Pełny ROM, kontrola opuszczania.", altIds:['latpulldown','assisted_pullup'], rating:5, equip:'drążek' },
   'latpulldown': { name:"Ściąganie drążka górnego", tech:"Skalowalna alternatywa dla drążka.", altIds:['pullup'], rating:5, equip:'wyciąg' },
 
-  'ohp': { name:"Wyciskanie nad głowę (OHP)", tech:"Nie przesadzaj z przeprostem w lędźwiach.", altIds:['seated_db_ohp'], rating:5, equip:'sztanga' },
-  'seated_db_ohp': { name:"Wyciskanie hantli siedząc", tech:"Stabilne, dobry dla barków.", altIds:['ohp'], rating:5, equip:'hantle' },
-  'facepull': { name:"Face pulls", tech:"Ciągnij środek liny do wysokości oczu.", altIds:['rear_delt_fly'], rating:4.5, equip:'wyciąg' },
+  'ohp': { name:"Wyciskanie nad głowę (OHP)", tech:"Kontroluj lędźwia; nie przesadzać z przeprostem.", altIds:['seated_db_ohp'], rating:5, equip:'sztanga' },
+  'seated_db_ohp': { name:"Wyciskanie hantli siedząc", tech:"Stabilne, dobre dla barków.", altIds:['ohp'], rating:5, equip:'hantle' },
+  'facepull': { name:"Face pulls", tech:"Ciągnij środek liny ku twarzy; tylne delt.", altIds:['rear_delt_fly'], rating:5, equip:'wyciąg' },
 
-  'dips': { name:"Dipy (poręcze)", tech:"Pochyl tułów by bardziej angażować klatkę.", altIds:['close_grip_bench','diamond_pushups'], rating:4, equip:'poręcze' },
+  'dips': { name:"Dipy (poręcze)", tech:"Pochyl tułów by angażować klatkę; triceps z bliskim trzymaniem.", altIds:['close_grip_bench','diamond_pushups'], rating:5, equip:'poręcze' },
   'close_grip_bench': { name:"Wyciskanie sztangi wąsko", tech:"Działa triceps i dolną część klatki.", altIds:['dips'], rating:4.5, equip:'sztanga' },
   'diamond_pushups': { name:"Pompki diamentowe", tech:"Dobra alternatywa bez sprzętu.", altIds:['dips'], rating:4, equip:'ciało' },
 
-  'biceps': { name:"Uginanie ramion (hantle/sztanga)", tech:"Łokcie przy tułowiu, pełne skurcze.", altIds:[], rating:4.5, equip:'hantle' },
-  'triceps': { name:"Prostowanie na wyciągu", tech:"Łokcie stabilne, pracuje tylko przedramię.", altIds:['overhead_ext'], rating:4.5, equip:'wyciąg' },
-  'overhead_ext': { name:"Prostowanie hantli zza głowy", tech:"Dobra opcja jednorącz/oburącz.", altIds:['triceps'], rating:4, equip:'hantle' },
+  'biceps': { name:"Uginanie sztangi/hantli (biceps)", tech:"Łokcie stabilne, pełen ROM.", altIds:['ez_curl','db_curl','hammer_curl'], rating:5, equip:'hantle' },
+  'db_sup': { name:"Uginanie hantli (supinacja)", tech:"Supinuj nadgarstek przy szczycie; cel: biceps peak.", altIds:['biceps','ez_curl'], rating:5, equip:'hantle' },
+  'preacher': { name:"Modlitewnik (preacher curl)", tech:"Izolacja bicepsa, kontrola dolnej fazy.", altIds:['cable_preacher','db_curl'], rating:4, equip:'maszyna' },
+  'hammer_curl': { name:"Hammer curl", tech:"Przedramię + brachialis; trzymać neutralny chwyt.", altIds:['rope_hammer','db_hammer'], rating:5, equip:'hantle' },
+  'reverse_curl': { name:"Uginanie nachwytem (reverse curl)", tech:"Przedramię + brachialis; utrzymuj łokcie.", altIds:[], rating:4, equip:'sztanga' },
+
+  'triceps': { name:"Prostowanie linek (pushdown)", tech:"Łokcie przy tułowiu; pracuje triceps.", altIds:['overhead_ext','skull_crusher'], rating:4.5, equip:'wyciąg' },
+  'overhead_ext': { name:"Prostowanie hantli zza głowy (one/two-arm)", tech:"Dobra praca długiej głowy tricepsa.", altIds:['triceps'], rating:4.5, equip:'hantle' },
+  'skull': { name:"Francuskie leżąc (skull crushers)", tech:"Kontrolowane opuszczanie, łokcie stabilne.", altIds:['overhead_ext','french_press'], rating:5, equip:'sztanga' },
 
   'leg_curl': { name:"Uginanie nóg (maszyna)", tech:"Kontroluj fazę negatywną.", altIds:['nordic','ghr'], rating:4, equip:'maszyna' },
   'nordic': { name:"Nordic ham curl", tech:"Bardzo wymagające; świetne na tył uda.", altIds:['leg_curl'], rating:4.5, equip:'ciało' },
 
+  'lunge': { name:"Wykroki / split squats", tech:"Stabilna pozycja, kontrolowane zejście; pracuj obie nogi.", altIds:['bulgarian_split','step_up'], rating:4.5, equip:'hantle' },
+  'pullover': { name:"Pullover (dumbbell/cable)", tech:"Łagodne rozciągnięcie klatki + praca pleców.", altIds:[], rating:4, equip:'hantle' },
+
   'plank': { name:"Plank + unoszenia nóg", tech:"Napięty brzuch i pośladki; nie zapadaj lędźwi.", altIds:['abwheel'], rating:4, equip:'ciało' },
+  'leg_raise': { name:"Unoszenie nóg (na ławce)", tech:"Kontroluj fazę opuszczania; napięcie dolnego brzucha.", altIds:['hanging_leg_raise'], rating:4.5, equip:'ciało' },
+  'hanging_leg_raise': { name:"Unoszenie nóg w zwisie", tech:"Zaawansowane; stabilizuj łopatki i barki.", altIds:['leg_raise'], rating:4.5, equip:'drążek' },
+  'russian_twist': { name:"Russian twist", tech:"Rotacja tułowia; kontrolowane tempo.", altIds:[], rating:3.5, equip:'ciało' },
+
+  'standing_calf': { name:"Stojące wspięcia na palce", tech:"Pełne ROM; kontrola fazy negatywnej.", altIds:['seated_calf'], rating:5, equip:'maszyna' },
+
   'cardio': { name:"Cardio umiarkowane", tech:"Tętno w strefie tlenowej.", altIds:[], rating:3, equip:'cardio' }
 };
 
@@ -235,14 +252,79 @@ const WEEK_TEMPLATE = [
 ];
 
 const PLAN_SIWY = {
-  "d1":[ {id:'bench',sets:'5',reps:'8-10'},{id:'squat',sets:'5',reps:'8-10'},{id:'incline_db',sets:'4',reps:'8-12'},{id:'rdl',sets:'4',reps:'8-12'},{id:'dips',sets:'4',reps:'10-15'},{id:'leg_curl',sets:'3',reps:'12-15'},{id:'plank',sets:'3',reps:'60s'} ],
-  "d3":[ {id:'row',sets:'5',reps:'8-10'},{id:'pullup',sets:'5',reps:'MAX'},{id:'ohp',sets:'4',reps:'8-10'},{id:'facepull',sets:'3',reps:'12-15'},{id:'biceps',sets:'4',reps:'8-12'},{id:'triceps',sets:'4',reps:'10-12'},{id:'cardio',sets:'1',reps:'15 min'} ],
-  "d5":[ {id:'deadlift',sets:'4',reps:'6-8'},{id:'bench',sets:'3-4',reps:'8-12'},{id:'lunge',sets:'3-4',reps:'8-12 na nogę'},{id:'pullover',sets:'3',reps:'10-12'} ]
+  "d1":[
+    {id:'bench',sets:'5',reps:'6-8'},
+    {id:'incline_db',sets:'4',reps:'8'},
+    {id:'flys',sets:'4',reps:'12-15'},
+    {id:'biceps',sets:'4',reps:'8'},
+    {id:'db_sup',sets:'3-4',reps:'10-12'},
+    {id:'preacher',sets:'3',reps:'12'},
+    {id:'dips',sets:'4',reps:'8-10'},
+    {id:'triceps',sets:'4',reps:'12'},
+    {id:'skull',sets:'3',reps:'10'},
+    {id:'leg_raise',sets:'4',reps:'15'},
+    {id:'plank',sets:'3',reps:'max'},
+    {id:'russian_twist',sets:'3',reps:'20'}
+  ],
+  "d3":[
+    {id:'squat',sets:'5',reps:'6-8'},
+    {id:'rdl',sets:'4',reps:'8-10'},
+    {id:'leg_press',sets:'4',reps:'12'},
+    {id:'leg_extension',sets:'3',reps:'15'},
+    {id:'leg_curl',sets:'3',reps:'12'},
+    {id:'standing_calf',sets:'5',reps:'15-20'},
+    {id:'close_grip_bench',sets:'4',reps:'8'},
+    {id:'overhead_ext',sets:'3',reps:'12'},
+    {id:'hanging_leg_raise',sets:'4',reps:'12-15'},
+    {id:'plank',sets:'3',reps:'max'}
+  ],
+  "d5":[
+    {id:'pullup',sets:'4',reps:'max'},
+    {id:'row',sets:'4',reps:'8-10'},
+    {id:'seated_row',sets:'3',reps:'12'},
+    {id:'facepull',sets:'4',reps:'15'},
+    {id:'hammer_curl',sets:'4',reps:'10'},
+    {id:'reverse_curl',sets:'3',reps:'15'},
+    {id:'hanging_leg_raise',sets:'3',reps:'max'}
+  ]
 };
+
 const PLAN_SZYMON = {
-  "d1":[ {id:'bench',sets:'4',reps:'6-8'},{id:'squat',sets:'4',reps:'6-8'},{id:'incline_db',sets:'3',reps:'8-10'},{id:'rdl',sets:'3',reps:'8-10'},{id:'dips',sets:'3',reps:'MAX'},{id:'leg_curl',sets:'3',reps:'12-15'},{id:'plank',sets:'3',reps:'60s'} ],
-  "d3":[ {id:'row',sets:'4',reps:'6-8'},{id:'pullup',sets:'4',reps:'MAX'},{id:'ohp',sets:'3',reps:'6-8'},{id:'facepull',sets:'3',reps:'12-15'},{id:'biceps',sets:'3',reps:'8-10'},{id:'triceps',sets:'3',reps:'10-12'},{id:'cardio',sets:'1',reps:'15 min'} ],
-  "d5":[ {id:'deadlift',sets:'3',reps:'4-6'},{id:'bench',sets:'3-4',reps:'8-12'},{id:'lunge',sets:'3-4',reps:'8-12 na nogę'},{id:'pullover',sets:'3',reps:'10-12'} ]
+  "d1":[
+    {id:'bench',sets:'4',reps:'8-10'},
+    {id:'incline_db',sets:'4',reps:'10'},
+    {id:'flys',sets:'4',reps:'12-15'},
+    {id:'biceps',sets:'4',reps:'10'},
+    {id:'db_sup',sets:'3-4',reps:'10-12'},
+    {id:'preacher',sets:'3',reps:'12'},
+    {id:'dips',sets:'3',reps:'10-12'},
+    {id:'triceps',sets:'4',reps:'12'},
+    {id:'skull',sets:'3',reps:'10'},
+    {id:'leg_raise',sets:'4',reps:'15'},
+    {id:'plank',sets:'3',reps:'max'},
+    {id:'russian_twist',sets:'3',reps:'20'}
+  ],
+  "d3":[
+    {id:'squat',sets:'4',reps:'8-10'},
+    {id:'rdl',sets:'4',reps:'8-10'},
+    {id:'leg_press',sets:'4',reps:'12'},
+    {id:'leg_extension',sets:'3',reps:'15'},
+    {id:'leg_curl',sets:'3',reps:'12'},
+    {id:'standing_calf',sets:'5',reps:'15-20'},
+    {id:'close_grip_bench',sets:'3',reps:'10'},
+    {id:'overhead_ext',sets:'3',reps:'12'},
+    {id:'hanging_leg_raise',sets:'4',reps:'12-15'},
+    {id:'plank',sets:'3',reps:'max'}
+  ],
+  "d5":[
+    {id:'pullup',sets:'4',reps:'max'},
+    {id:'row',sets:'4',reps:'8-10'},
+    {id:'seated_row',sets:'3',reps:'12'},
+    {id:'facepull',sets:'4',reps:'15'},
+    {id:'hammer_curl',sets:'4',reps:'10'},
+    {id:'reverse_curl',sets:'3',reps:'15'},
+    {id:'hanging_leg_raise',sets:'3',reps:'max'}
+  ]
 };
 
 /* =========================
@@ -762,12 +844,12 @@ function goToTodayAfterProfileLoad(retries = 0) {
    KNOWLEDGE / KB
    ========================= */
 const KNOWLEDGE = {
-  siwy: `<div class="macro-box"><strong>Cel:</strong> Mały, stabilny przyrost masy<br><strong>TDEE:</strong> ~3373 kcal → <strong>Cel:</strong> 3573 kcal</div>
-         <div class="macro-box" style="border-left-color:var(--pull)"><strong>Makro:</strong><br>🥩 Białko: 210g<br>🥑 Tłuszcze: 99g<br>🍚 Węglowodany: 460g</div>
-         <p style="color:var(--muted)">Kreatyna: 5g codziennie. Woda: ~4.5-5.5 L/dzień. Sen: 8-10 h.</p>`,
-  szymon:`<div class="macro-box"><strong>Cel:</strong> Agresywny przyrost masy<br><strong>TDEE:</strong> ~2700 kcal → <strong>Cel:</strong> 3050 kcal</div>
-         <div class="macro-box" style="border-left-color:var(--push)"><strong>Makro:</strong><br>🥩 Białko: 160g<br>🥑 Tłuszcze: 75g<br>🍚 Węglowodany: 435g</div>
-         <p style="color:var(--muted)">Kreatyna: 5g codziennie. Woda: ~3-4 L/dzień. Sen: 8-10 h.</p>`
+  siwy: `<div class="macro-box"><strong>Cel:</strong> Hipertrofia — mały, stały przyrost masy<br><strong>TDEE:</strong> ~3700 kcal → <strong>Cel:</strong> 3700 kcal (kontrola, + delikatna nadwyżka)</div>
+         <div class="macro-box" style="border-left-color:var(--pull)"><strong>Makro (przybliżone):</strong><br>🥩 Białko: 210 g<br>🥑 Tłuszcze: 100 g<br>🍚 Węglowodany: ~490 g</div>
+         <p style="color:var(--muted)">Kreatyna: 5 g/dziennie. Woda: ~4.0–4.5 L/dzień. Sen: 8–9 h. Priorytet: technika → progresja objętości.</p>`,
+  szymon:`<div class="macro-box"><strong>Cel:</strong> Agresywny przyrost masy (hipertrofia + kalorie)</div>
+         <div class="macro-box" style="border-left-color:var(--push)"><strong>Makro (przybliżone):</strong><br>🥩 Białko: 145 g<br>🥑 Tłuszcze: 75 g<br>🍚 Węglowodany: ~435 g<br><strong>Kalorie:</strong> ~3000 kcal</div>
+         <p style="color:var(--muted)">Kreatyna: 5 g/dziennie. Woda: ~3.0–3.5 L/dzień. Sen: 8–9 h.</p>`
 };
 function openKnowledgeBase(){ if(!currentProfile) return; document.getElementById('kb-content').innerHTML = KNOWLEDGE[currentProfile]||'Brak danych'; document.getElementById('modal-kb').classList.add('active'); }
 
