@@ -81,7 +81,27 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);overflow:h
 .option-btn{width:100%;padding:12px;border-radius:12px;background:var(--card-hover);border:none;color:white;font-weight:700;text-align:left;margin-bottom:10px;cursor:pointer}
 .option-btn.danger{background:rgba(255,69,58,.08);color:var(--danger);border:1px solid rgba(255,69,58,.14)}
 .close-btn{width:100%;padding:12px;border-radius:12px;background:white;color:black;font-weight:800;border:none;cursor:pointer}
-
+.ex-actions{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-shrink:0;
+}
+.edit-circle,.info-circle{
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.06);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  border:none;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.edit-circle{color:var(--push)}
+.info-circle{color:var(--pull)}
 .macro-box{background:#000;padding:10px;border-radius:10px;margin-bottom:8px;border-left:4px solid var(--push)}
 textarea{width:100%;height:110px;border-radius:12px;padding:10px;background:#000;border:1px solid #333;color:#fff;resize:none;outline:none}
 
@@ -144,6 +164,7 @@ textarea{width:100%;height:110px;border-radius:12px;padding:10px;background:#000
   <div class="modal-content" onclick="event.stopPropagation()">
     <h3 id="edit-modal-title" style="margin:0 0 12px 0"></h3>
     <button class="option-btn" onclick="triggerEditStats()">✎ Edytuj Serie / Powtórzenia</button>
+    <button class="option-btn" onclick="triggerEditKg()">🏋️ Edytuj KG</button>
     <button class="option-btn" onclick="triggerSwap()">⇄ Zamień na alternatywę</button>
     <div id="remove-area"></div>
     <button class="option-btn danger" onclick="closeModal('modal-edit')" style="margin-top:8px">Anuluj</button>
@@ -432,6 +453,7 @@ function loadState(profile) {
         }
         ex.sets = ex.sets || '3';
         ex.reps = ex.reps || '10';
+        ex.kg = ex.kg ?? '';
         return ex;
       });
 
@@ -444,6 +466,7 @@ function loadState(profile) {
       name: EX_LIB[ex.id] ? EX_LIB[ex.id].name : ex.id,
       sets: ex.sets,
       reps: ex.reps,
+      kg: '',
       libId: ex.id,
       tag: EX_LIB[ex.id] ? EX_LIB[ex.id].equip || '' : '',
       rating: EX_LIB[ex.id] ? EX_LIB[ex.id].rating || 0 : 0
@@ -488,15 +511,37 @@ function getWeekDates(){
    Build weekly plan
    ========================= */
 function buildWeeklyPlan(profile){
-  const planObj = profile==='siwy'? PLAN_SIWY : PLAN_SZYMON;
-  state.plan = WEEK_TEMPLATE.map(day=>{
-    const copy = { id: day.id, title: day.title, subtitle: day.subtitle, type: day.type, theme: day.theme, reqs: (day.type==='workout' ? 'Trenuj według planu — patrz serie/powt. • Focus: technika' : 'Regeneruj: spacer/mobilność'), exercises: [] };
-    if(day.type==='workout'){
+  const planObj = profile==='siwy' ? PLAN_SIWY : PLAN_SZYMON;
+
+  state.plan = WEEK_TEMPLATE.map(day => {
+    const copy = {
+      id: day.id,
+      title: day.title,
+      subtitle: day.subtitle,
+      type: day.type,
+      theme: day.theme,
+      reqs: (day.type==='workout'
+        ? 'Trenuj według planu — patrz serie/powt. • Focus: technika'
+        : 'Regeneruj: spacer/mobilność'),
+      exercises: []
+    };
+
+    if(day.type === 'workout'){
       const exList = planObj[day.id] || [];
-      copy.exercises = exList.map(ex=> ({ name: EX_LIB[ex.id]?.name || ex.id, sets: ex.sets, reps: ex.reps, libId: ex.id, tag: EX_LIB[ex.id]?.equip || '', rating: EX_LIB[ex.id]?.rating || 0 }) );
+      copy.exercises = exList.map(ex => ({
+        name: EX_LIB[ex.id]?.name || ex.id,
+        sets: ex.sets,
+        reps: ex.reps,
+        kg: '',
+        libId: ex.id,
+        tag: EX_LIB[ex.id]?.equip || '',
+        rating: EX_LIB[ex.id]?.rating || 0
+      }));
     }
+
     return copy;
   });
+
   state.notes = state.notes || {};
   state.completed = state.completed || {};
   saveState();
@@ -555,16 +600,27 @@ function renderApp(){
   const container = document.getElementById('app-container');
   const dots = document.getElementById('dots');
   const prevScroll = container.scrollLeft || 0;
-  container.innerHTML=''; dots.innerHTML='';
+  container.innerHTML=''; 
+  dots.innerHTML='';
 
   const dates = getWeekDates();
+
   state.plan.forEach((day, idx) => {
-    // dot
-    const dot = document.createElement('div'); dot.className = 'dot ' + (idx===0 ? 'active' : ''); dots.appendChild(dot);
-    // slide
-    const slide = document.createElement('div'); slide.className = 'day-slide';
-    const inner = document.createElement('div'); inner.className = 'slide-inner';
-    let themeColor = (day.theme==='push')? 'var(--push)':(day.theme==='pull')? 'var(--pull)':(day.theme==='legs')? 'var(--legs)': '#5e5ce6';
+    const dot = document.createElement('div');
+    dot.className = 'dot ' + (idx===0 ? 'active' : '');
+    dots.appendChild(dot);
+
+    const slide = document.createElement('div');
+    slide.className = 'day-slide';
+
+    const inner = document.createElement('div');
+    inner.className = 'slide-inner';
+
+    let themeColor = (day.theme==='push') ? 'var(--push)'
+                    : (day.theme==='pull') ? 'var(--pull)'
+                    : (day.theme==='legs') ? 'var(--legs)'
+                    : '#5e5ce6';
+
     const headerHTML = `<div class="day-header" style="border-left-color:${themeColor}" onclick="openDayModal(${idx})">
       <div class="day-title">${day.title}</div>
       <div class="day-sub">${day.subtitle} • ${dates[idx]}</div>
@@ -572,70 +628,106 @@ function renderApp(){
     </div>`;
     inner.insertAdjacentHTML('beforeend', headerHTML);
 
-    // exercises
     if(day.type === 'workout' && day.exercises && day.exercises.length){
-      day.exercises.forEach((ex,eIdx) => {
+      day.exercises.forEach((ex, eIdx) => {
         const doneKey = `${dates[idx]}_${ex.libId}_${currentProfile}`;
         const done = !!state.completed[doneKey];
+
         const exCard = document.createElement('div');
         exCard.className = 'exercise-card' + (done ? ' completed' : '');
         exCard.id = `ex-${idx}-${eIdx}`;
-        exCard.innerHTML = `<div class="ex-info"><span class="ex-name">${ex.name}</span>
-            <div class="ex-stats"><div class="stat-tag"><span>S:</span>${ex.sets}</div><div class="stat-tag"><span>P:</span>${ex.reps}</div></div>
-          </div>
-          <button class="info-circle">i</button>`;
 
-        // use pointer events to unify touch/mouse — supports double-tap + long-press
+        exCard.innerHTML = `
+          <div class="ex-info">
+            <span class="ex-name">${ex.name}</span>
+            <div class="ex-stats">
+              <div class="stat-tag"><span>S:</span>${ex.sets}</div>
+              <div class="stat-tag"><span>P:</span>${ex.reps}</div>
+              ${String(ex.kg ?? '').trim() !== '' ? `<div class="stat-tag"><span>KG:</span>${ex.kg}</div>` : ''}
+            </div>
+          </div>
+          <div class="ex-actions">
+            <button class="edit-circle" type="button">✎</button>
+            <button class="info-circle" type="button">i</button>
+          </div>
+        `;
+
+        // gesty
         exCard.addEventListener('pointerdown', (ev)=> startPress(ev, idx, eIdx));
         exCard.addEventListener('pointerup', (ev)=> endPress(ev, idx, eIdx));
         exCard.addEventListener('pointercancel', ()=> cancelPress());
-        exCard.addEventListener('pointerleave', ()=> cancelPress());
+        // nie używamy pointerleave, bo na telefonie potrafi przeszkadzać
+        // exCard.addEventListener('pointerleave', ()=> cancelPress());
 
-        // info button
-        exCard.querySelector('.info-circle').onclick = (ev)=> { ev.stopPropagation(); showInfo(idx, eIdx); };
+        // przyciski
+        exCard.querySelector('.edit-circle').onclick = (ev)=> {
+          ev.stopPropagation();
+          openEditModal(idx, eIdx);
+        };
+        exCard.querySelector('.info-circle').onclick = (ev)=> {
+          ev.stopPropagation();
+          showInfo(idx, eIdx);
+        };
+
         inner.appendChild(exCard);
       });
     } else {
-      inner.insertAdjacentHTML('beforeend', `<div class="exercise-card" style="border-color:var(--pull)"><div style="font-weight:700">Aktywność dowolna</div><div style="color:var(--muted)">Spacer, rolka, ruch</div></div>`);
+      inner.insertAdjacentHTML('beforeend', `
+        <div class="exercise-card" style="border-color:var(--pull)">
+          <div style="font-weight:700">Aktywność dowolna</div>
+          <div style="color:var(--muted)">Spacer, rolka, ruch</div>
+        </div>
+      `);
     }
 
-    inner.insertAdjacentHTML('beforeend', `<button class="option-btn" onclick="openLibForAdding(${idx})" style="background:transparent;border:2px dashed rgba(255,255,255,0.06);color:var(--muted);margin-top:12px">+ Dodaj ćwiczenie</button>`);
+    inner.insertAdjacentHTML('beforeend', `
+      <button class="option-btn" onclick="openLibForAdding(${idx})" style="background:transparent;border:2px dashed rgba(255,255,255,0.06);color:var(--muted);margin-top:12px">
+        + Dodaj ćwiczenie
+      </button>
+    `);
+
     slide.appendChild(inner);
     container.appendChild(slide);
   });
 
-  // robust handler: compute closest slide by bounding rect relative to container
   const slides = Array.from(container.querySelectorAll('.day-slide'));
   const dotEls = Array.from(document.querySelectorAll('.dot'));
+
   function updateDotsByScroll(){
     const containerRect = container.getBoundingClientRect();
     let closest = 0, minDiff = Infinity;
+
     slides.forEach((s,i)=>{
       const r = s.getBoundingClientRect();
       const diff = Math.abs(r.left - containerRect.left);
-      if(diff < minDiff){ minDiff = diff; closest = i; }
+      if(diff < minDiff){
+        minDiff = diff;
+        closest = i;
+      }
     });
+
     dotEls.forEach((d,i)=> d.classList.toggle('active', i===closest));
   }
-  // attach debounced via rAF
+
   let rafId = null;
-  const scrollHandler = ()=> { if(rafId) cancelAnimationFrame(rafId); rafId = requestAnimationFrame(updateDotsByScroll); };
-  // remove previous if any
+  const scrollHandler = ()=>{
+    if(rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(updateDotsByScroll);
+  };
+
   if(container._scrollHandler) container.removeEventListener('scroll', container._scrollHandler);
   container._scrollHandler = scrollHandler;
   container.addEventListener('scroll', container._scrollHandler);
 
-  // restore previous scroll (async, po renderze)
   const skipRestore = !!window._skipRestoreOnNextRender;
-requestAnimationFrame(()=>{
-  if (!skipRestore) {
-    container.scrollLeft = prevScroll;
-  } else {
-    // wyczyść flagę (jednorazowe użycie)
-    try { window._skipRestoreOnNextRender = false; } catch(e){}
-  }
-  if(typeof updateDotsByScroll === 'function') updateDotsByScroll();
-});
+  requestAnimationFrame(()=>{
+    if(!skipRestore){
+      container.scrollLeft = prevScroll;
+    } else {
+      try { window._skipRestoreOnNextRender = false; } catch(e){}
+    }
+    updateDotsByScroll();
+  });
 }
 
 /* =========================
@@ -702,9 +794,34 @@ function openEditModal(dIdx,eIdx){
 }
 function triggerEditStats(){
   const ex = state.plan[activeEdit.dayIdx].exercises[activeEdit.exIdx];
-  const s = prompt("Ile serii?", ex.sets); if(s===null) return;
-  const p = prompt("Ile powtórzeń?", ex.reps); if(p===null) return;
-  ex.sets = s; ex.reps = p; saveState(); renderApp(); closeModal('modal-edit');
+
+  const s = prompt("Ile serii?", ex.sets);
+  if(s===null) return;
+
+  const p = prompt("Ile powtórzeń?", ex.reps);
+  if(p===null) return;
+
+  const kg = prompt("Na jakim ciężarze pracowałeś? (KG)", ex.kg ?? '');
+  if(kg===null) return;
+
+  ex.sets = s;
+  ex.reps = p;
+
+  saveState();
+  renderApp();
+  closeModal('modal-edit');
+}
+function triggerEditKg(){
+  const ex = state.plan[activeEdit.dayIdx].exercises[activeEdit.exIdx];
+
+  const kg = prompt("Na jakim ciężarze pracowałeś? (KG)", ex.kg ?? '');
+  if(kg === null) return;
+
+  ex.kg = kg;
+
+  saveState();
+  renderApp();
+  closeModal('modal-edit');
 }
 function triggerSwap(){
   closeModal('modal-edit');
@@ -712,7 +829,7 @@ function triggerSwap(){
   const libEntry = EX_LIB[current.libId] || null;
   const suggested = libEntry ? (libEntry.altIds || []) : [];
   openLibrary(suggested, (sel)=>{
-    current.name = sel.name; current.libId = sel.id; current.tag = sel.equip || '';
+    current.name = sel.name; current.libId = sel.id; current.tag = sel.equip || ''; current.kg = '';
     saveState(); renderApp();
   });
 }
@@ -724,33 +841,77 @@ function removeExercise(){ state.plan[activeEdit.dayIdx].exercises.splice(active
 function openLibForAdding(dayIdx){
   activeEdit.dayIdx = dayIdx;
   openLibrary(null, (sel)=>{
-    state.plan[dayIdx].exercises.push({ name: sel.name, sets:'3', reps:'10', libId: sel.id, tag: sel.equip||'', rating: sel.rating||0 });
-    saveState(); renderApp();
+    state.plan[dayIdx].exercises.push({
+      name: sel.name,
+      sets: '3',
+      reps: '10',
+      kg: '',
+      libId: sel.id,
+      tag: sel.equip || '',
+      rating: sel.rating || 0
+    });
+    saveState();
+    renderApp();
   });
 }
+
 function openLibrary(suggestedIds, onSelect){
   const altSec = document.getElementById('lib-alternatives-section');
   const altList = document.getElementById('lib-alternatives-list');
   const main = document.getElementById('lib-list');
-  altList && (altList.innerHTML='');
-  main && (main.innerHTML='');
+
+  if (altList) altList.innerHTML = '';
+  if (main) main.innerHTML = '';
   document.getElementById('modal-lib').classList.add('active');
-  const custom = document.createElement('button'); custom.className='option-btn'; custom.innerText='➕ Stwórz własne ćwiczenie';
-  custom.onclick = ()=>{ const name = prompt("Nazwa ćwiczenia:"); if(!name) return; onSelect({ id:'custom_'+Date.now(), name:name, altIds:[], rating:0 }); closeModal('modal-lib'); };
+
+  const custom = document.createElement('button');
+  custom.className = 'option-btn';
+  custom.innerText = '➕ Stwórz własne ćwiczenie';
+  custom.onclick = ()=>{
+    const name = prompt("Nazwa ćwiczenia:");
+    if(!name) return;
+    onSelect({
+      id: 'custom_' + Date.now(),
+      name: name,
+      altIds: [],
+      rating: 0,
+      equip: '',
+      tech: ''
+    });
+    closeModal('modal-lib');
+  };
   main.appendChild(custom);
+
   if(suggestedIds && suggestedIds.length){
-    altSec.style.display='block';
-    suggestedIds.forEach(id=>{ const e=EX_LIB[id]; if(e) altList.appendChild(createLibBtn(Object.assign({id:id},e), onSelect)); });
-  } else altSec.style.display='none';
-  Object.keys(EX_LIB).forEach(k=>{ if(suggestedIds && suggestedIds.includes(k)) return; main.appendChild(createLibBtn(Object.assign({id:k},EX_LIB[k]), onSelect)); });
-}
-function createLibBtn(ex,onSelect){
-  const btn = document.createElement('button'); btn.className='option-btn';
-  btn.innerHTML = `<div style="text-align:left"><strong>${ex.name}</strong><div style="color:var(--muted);font-size:.9rem">${ex.equip||''}</div></div><div style="color:#ffd60a;font-weight:800">★${ex.rating||0}</div>`;
-  btn.onclick = ()=>{ onSelect(Object.assign({id:ex.id},ex)); closeModal('modal-lib'); };
-  return btn;
+    altSec.style.display = 'block';
+    suggestedIds.forEach(id=>{
+      const e = EX_LIB[id];
+      if(e) altList.appendChild(createLibBtn(Object.assign({id:id}, e), onSelect));
+    });
+  } else {
+    altSec.style.display = 'none';
+  }
+
+  Object.keys(EX_LIB).forEach(k=>{
+    if(suggestedIds && suggestedIds.includes(k)) return;
+    main.appendChild(createLibBtn(Object.assign({id:k}, EX_LIB[k]), onSelect));
+  });
 }
 
+function createLibBtn(ex, onSelect){
+  const btn = document.createElement('button');
+  btn.className = 'option-btn';
+  btn.innerHTML = `<div style="text-align:left">
+      <strong>${ex.name}</strong>
+      <div style="color:var(--muted);font-size:.9rem">${ex.equip || ''}</div>
+    </div>
+    <div style="color:#ffd60a;font-weight:800">★${ex.rating || 0}</div>`;
+  btn.onclick = ()=>{
+    onSelect(Object.assign({id: ex.id}, ex));
+    closeModal('modal-lib');
+  };
+  return btn;
+}
 /* =========================
    INFO / DAY modal / NOTES / TIMER / KB
    ========================= */
