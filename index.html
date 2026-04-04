@@ -165,9 +165,19 @@ textarea{width:100%;height:110px;border-radius:12px;padding:10px;background:#000
     <h3 id="edit-modal-title" style="margin:0 0 12px 0"></h3>
     <button class="option-btn" onclick="triggerEditStats()">✎ Edytuj Serie / Powtórzenia</button>
     <button class="option-btn" onclick="triggerEditKg()">🏋️ Edytuj KG</button>
+    <button class="option-btn" onclick="openExerciseHistory()">📈 Historia ćwiczenia</button>
     <button class="option-btn" onclick="triggerSwap()">⇄ Zamień na alternatywę</button>
     <div id="remove-area"></div>
     <button class="option-btn danger" onclick="closeModal('modal-edit')" style="margin-top:8px">Anuluj</button>
+  </div>
+</div>
+
+<div id="modal-history" class="modal" onclick="closeModal('modal-history')">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3 id="history-modal-title" style="margin:0 0 12px 0"></h3>
+    <div id="history-modal-subtitle" style="color:var(--muted);margin-bottom:12px"></div>
+    <div id="history-list"></div>
+    <button class="close-btn" onclick="closeModal('modal-history')" style="margin-top:12px">Zamknij</button>
   </div>
 </div>
 
@@ -331,7 +341,7 @@ const PLAN_SZYMON = JSON.parse(JSON.stringify(PLAN_SIWY));
    STAN / STORAGE
    ========================= */
 let currentProfile = null;
-let state = { plan: [], notes: {}, completed: {} };
+let state = { plan: [], notes: {}, completed: {}, history: [] };
 let activeEdit = { dayIdx:null, exIdx:null };
 let longPressTimer = null;
 let pressing=false;
@@ -341,6 +351,44 @@ const DOUBLE_TAP_MS = 300; // double tap threshold in ms
 
 function storageKey(p){ return `gym_v1_${p}`; }
 function saveState(){ if(!currentProfile) return; localStorage.setItem(storageKey(currentProfile), JSON.stringify(state)); }
+
+function ensureStateShape(){
+  if(!state || typeof state !== 'object') state = { plan: [], notes: {}, completed: {}, history: [] };
+  state.notes = state.notes || {};
+  state.completed = state.completed || {};
+  state.history = Array.isArray(state.history) ? state.history : [];
+}
+
+function pad2(n){ return String(n).padStart(2,'0'); }
+function getLocalDateStamp(d=new Date()){
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+}
+function getLocalDateTimeStamp(d=new Date()){
+  return `${getLocalDateStamp(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function addHistoryEntry(ex, day, action){
+  ensureStateShape();
+  const entry = {
+    profile: currentProfile,
+    action: action || 'edit',
+    savedAt: Date.now(),
+    date: getLocalDateStamp(),
+    time: getLocalDateTimeStamp(),
+    dayId: day?.id || '',
+    dayTitle: day?.title || '',
+    daySubtitle: day?.subtitle || '',
+    exerciseId: ex?.libId || '',
+    exerciseName: ex?.name || '',
+    sets: ex?.sets ?? '',
+    reps: ex?.reps ?? '',
+    kg: ex?.kg ?? ''
+  };
+  state.history.unshift(entry);
+  if(state.history.length > 600) state.history.length = 600;
+  saveState();
+}
+
+function formatHistoryValue(v){ return String(v ?? '').trim() === '' ? '—' : String(v); }
 
 /* =========================
    CRITICAL CHANGE #2 — REPLACE loadState(profile) WITH THIS DEFENSIVE VERSION
@@ -374,6 +422,7 @@ function loadState(profile) {
   state = parsed || {};
   state.notes = state.notes || {};
   state.completed = state.completed || {};
+  state.history = Array.isArray(state.history) ? state.history : [];
   state.plan = Array.isArray(state.plan) ? state.plan.slice() : [];
 
   // Normalizacja każdego dnia wg WEEK_TEMPLATE
@@ -503,6 +552,7 @@ function buildWeeklyPlan(profile){
 
   state.notes = state.notes || {};
   state.completed = state.completed || {};
+  state.history = Array.isArray(state.history) ? state.history : [];
   saveState();
 }
 
@@ -732,12 +782,13 @@ function toggleCompleted(dIdx,eIdx){
   if(!ex) return;
   const doneKey = `${dates[dIdx]}_${ex.libId}_${currentProfile}`;
   state.completed[doneKey] = !state.completed[doneKey];
-  saveState();
   if(state.completed[doneKey]){
+    addHistoryEntry(ex, state.plan[dIdx], 'completed');
     startTimer(195); // 195 seconds as requested
   } else {
     stopTimer(); // odkreślenie przerywa i kasuje timer
   }
+  saveState();
   renderApp();
 }
 
@@ -753,6 +804,7 @@ function openEditModal(dIdx,eIdx){
 }
 function triggerEditStats(){
   const ex = state.plan[activeEdit.dayIdx].exercises[activeEdit.exIdx];
+  const day = state.plan[activeEdit.dayIdx];
 
   const s = prompt("Ile serii?", ex.sets);
   if(s===null) return;
@@ -765,20 +817,22 @@ function triggerEditStats(){
 
   ex.sets = s;
   ex.reps = p;
+  ex.kg = kg;
 
-  saveState();
+  addHistoryEntry(ex, day, 'series_reps');
   renderApp();
   closeModal('modal-edit');
 }
 function triggerEditKg(){
   const ex = state.plan[activeEdit.dayIdx].exercises[activeEdit.exIdx];
+  const day = state.plan[activeEdit.dayIdx];
 
   const kg = prompt("Na jakim ciężarze pracowałeś? (KG)", ex.kg ?? '');
   if(kg === null) return;
 
   ex.kg = kg;
 
-  saveState();
+  addHistoryEntry(ex, day, 'kg');
   renderApp();
   closeModal('modal-edit');
 }
@@ -793,6 +847,42 @@ function triggerSwap(){
   });
 }
 function removeExercise(){ state.plan[activeEdit.dayIdx].exercises.splice(activeEdit.exIdx,1); saveState(); renderApp(); closeModal('modal-edit'); }
+
+function openExerciseHistory(){
+  const ex = state.plan[activeEdit.dayIdx]?.exercises?.[activeEdit.exIdx];
+  if(!ex) return;
+  const libId = ex.libId || ex.name;
+  const day = state.plan[activeEdit.dayIdx];
+  const history = (state.history || [])
+    .filter(h => h.profile === currentProfile && (h.exerciseId === libId || h.exerciseName === ex.name))
+    .sort((a,b) => b.savedAt - a.savedAt)
+    .slice(0, 30);
+
+  document.getElementById('history-modal-title').innerText = `Historia: ${ex.name}`;
+  document.getElementById('history-modal-subtitle').innerText = `${day?.title || ''} • zapisane wpisy dla tego ćwiczenia`;
+  const wrap = document.getElementById('history-list');
+
+  if(!history.length){
+    wrap.innerHTML = `<div class="exercise-card" style="cursor:default"><div><strong>Brak historii</strong><div style="color:var(--muted);margin-top:4px">Pierwszy zapis pojawi się po edycji KG, serii lub powtórzeń.</div></div></div>`;
+  } else {
+    const actionLabel = (a) => a === 'completed' ? 'Zapis treningu' : (a === 'kg' ? 'Zmiana KG' : 'Zmiana serii/powt.' );
+    wrap.innerHTML = history.map(h => `
+      <div class="exercise-card" style="cursor:default;align-items:flex-start">
+        <div class="ex-info" style="padding-right:0">
+          <span class="ex-name">${h.date} • ${h.time}</span>
+          <div style="color:var(--muted);margin-bottom:8px">${h.dayTitle || ''} • ${actionLabel(h.action)}</div>
+          <div class="ex-stats">
+            <div class="stat-tag"><span>S:</span>${formatHistoryValue(h.sets)}</div>
+            <div class="stat-tag"><span>P:</span>${formatHistoryValue(h.reps)}</div>
+            <div class="stat-tag"><span>KG:</span>${formatHistoryValue(h.kg)}</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('modal-history').classList.add('active');
+}
 
 /* =========================
    Library / Add custom
@@ -1004,6 +1094,7 @@ window.confirmProfile = confirmProfile;
 window.openDayModal = openDayModal;
 window.openLibForAdding = openLibForAdding;
 window.openKnowledgeBase = openKnowledgeBase;
+window.openExerciseHistory = openExerciseHistory;
 window.closeModal = closeModal;
 
 /* boot */
