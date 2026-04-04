@@ -305,38 +305,69 @@ const WEEK_TEMPLATE = [
 
 const PLAN_SIWY = {
   "d1":[
-    {id:'incline_press_machine',sets:'4',reps:'6-8'},
-    {id:'chest_press_machine',sets:'3',reps:'8-10'},
-    {id:'cable_fly_low_high',sets:'3',reps:'12-15'},
-    {id:'shoulder_press_machine',sets:'3',reps:'6-8'},
+    {id:'incline_press_machine',sets:'4',reps:'6-10'},
+    {id:'chest_press_machine',sets:'3',reps:'8-12'},
+    {id:'cable_fly_low_high',sets:'3',reps:'12-20'},
+    {id:'shoulder_press_machine',sets:'3',reps:'6-10'},
     {id:'lateral_raise',sets:'4',reps:'12-20'},
     {id:'rope_pushdown',sets:'3',reps:'10-15'},
     {id:'overhead_rope_triceps',sets:'2',reps:'12-20'}
   ],
   "d3":[
     {id:'neutral_pulldown',sets:'4',reps:'6-10'},
-    {id:'chest_supported_row',sets:'4',reps:'8-10'},
+    {id:'chest_supported_row',sets:'4',reps:'8-12'},
     {id:'single_arm_pulldown_hip',sets:'3',reps:'10-12'},
     {id:'facepull',sets:'4',reps:'12-20'},
-    {id:'shrugs',sets:'3',reps:'10-12'},
-    {id:'ez_curl',sets:'3',reps:'8-10'},
-    {id:'incline_db_curl',sets:'3',reps:'10-12'}
+    {id:'shrugs',sets:'3',reps:'10-15'},
+    {id:'ez_curl',sets:'3',reps:'8-12'},
+    {id:'incline_db_curl',sets:'3',reps:'10-15'}
   ],
   "d5":[
-    {id:'incline_press_machine',sets:'4',reps:'8-10'},
-    {id:'dip_machine',sets:'3',reps:'8-10'},
+    {id:'incline_press_machine',sets:'4',reps:'8-12'},
+    {id:'dip_machine',sets:'3',reps:'8-12'},
     {id:'pec_deck',sets:'3',reps:'12-15'},
-    {id:'seated_row',sets:'3',reps:'8-10'},
+    {id:'seated_row',sets:'3',reps:'8-12'},
     {id:'lateral_raise',sets:'4',reps:'12-20'},
     {id:'hammer_curl',sets:'3',reps:'10-12'},
     {id:'triceps',sets:'3',reps:'12-15'},
     {id:'leg_curl',sets:'3',reps:'10-15'},
-    {id:'hip_thrust',sets:'3',reps:'8-10'},
+    {id:'hip_thrust',sets:'3',reps:'8-12'},
     {id:'leg_extension',sets:'2',reps:'12-15'}
   ]
 };
 
-const PLAN_SZYMON = JSON.parse(JSON.stringify(PLAN_SIWY));
+const PLAN_SZYMON = {
+  "d1":[
+    {id:'incline_press_machine',sets:'3',reps:'6-10'},
+    {id:'chest_press_machine',sets:'3',reps:'8-12'},
+    {id:'cable_fly_low_high',sets:'3',reps:'12-20'},
+    {id:'shoulder_press_machine',sets:'3',reps:'6-10'},
+    {id:'lateral_raise',sets:'3',reps:'12-20'},
+    {id:'rope_pushdown',sets:'2',reps:'10-15'},
+    {id:'overhead_rope_triceps',sets:'2',reps:'12-20'}
+  ],
+  "d3":[
+    {id:'neutral_pulldown',sets:'3',reps:'6-10'},
+    {id:'chest_supported_row',sets:'3',reps:'8-12'},
+    {id:'single_arm_pulldown_hip',sets:'3',reps:'10-12'},
+    {id:'facepull',sets:'3',reps:'12-20'},
+    {id:'shrugs',sets:'3',reps:'10-15'},
+    {id:'ez_curl',sets:'2',reps:'8-12'},
+    {id:'incline_db_curl',sets:'2',reps:'10-15'}
+  ],
+  "d5":[
+    {id:'incline_press_machine',sets:'3',reps:'8-12'},
+    {id:'dip_machine',sets:'3',reps:'8-12'},
+    {id:'pec_deck',sets:'3',reps:'12-15'},
+    {id:'seated_row',sets:'3',reps:'8-12'},
+    {id:'lateral_raise',sets:'3',reps:'12-20'},
+    {id:'hammer_curl',sets:'2',reps:'10-12'},
+    {id:'triceps',sets:'2',reps:'12-15'},
+    {id:'leg_curl',sets:'2',reps:'10-15'},
+    {id:'hip_thrust',sets:'2',reps:'8-12'},
+    {id:'leg_extension',sets:'2',reps:'12-15'}
+  ]
+};
 /* =========================
    STAN / STORAGE
    ========================= */
@@ -398,9 +429,8 @@ function loadState(profile) {
   const key = storageKey(profile);
   const raw = localStorage.getItem(key);
 
-  // Force parity: if profile is 'szymon', use SIWY as canonical default
-  const defaultPlanObj = (profile === 'szymon') ? PLAN_SIWY : PLAN_SZYMON;
-  const forceParity = (profile === 'szymon');
+  const defaultPlanObj = (profile === 'siwy') ? PLAN_SIWY : PLAN_SZYMON;
+  const forceParity = false;
 
   // Jeśli brak zapisu — zbuduj domyślny plan i wyjdź
   if (!raw) {
@@ -429,7 +459,6 @@ function loadState(profile) {
   const normalized = WEEK_TEMPLATE.map(dayTemplate => {
     const storedDay = state.plan.find(d => d.id === dayTemplate.id);
 
-    // Jeśli wymuszamy parytet dla Szymona -> IGNORUJ zapisane storedDay i bierz z defaultPlanObj (czyli PLAN_SIWY)
     if (!forceParity && storedDay && Array.isArray(storedDay.exercises) && storedDay.exercises.length > 0) {
       // uzupełnij meta pola dnia
       storedDay.title = storedDay.title || dayTemplate.title;
@@ -468,7 +497,7 @@ function loadState(profile) {
       return storedDay;
     }
 
-    // brak zapisanego dnia, brak ćwiczeń lub wymuszamy parytet -> wyciągnij z domyślnego planu (defaultPlanObj)
+    // brak zapisanego dnia lub brak ćwiczeń -> wyciągnij z domyślnego planu (defaultPlanObj)
     const listFromDefault = (defaultPlanObj[dayTemplate.id] || []);
     const exercises = listFromDefault.map(ex => ({
       name: EX_LIB[ex.id] ? EX_LIB[ex.id].name : ex.id,
@@ -519,7 +548,7 @@ function getWeekDates(){
    Build weekly plan
    ========================= */
 function buildWeeklyPlan(profile){
-  const planObj = profile==='siwy' ? PLAN_SIWY : PLAN_SZYMON;
+  const planObj = profile === 'siwy' ? PLAN_SIWY : PLAN_SZYMON;
 
   state.plan = WEEK_TEMPLATE.map(day => {
     const copy = {
