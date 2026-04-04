@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover" />
-<title>GymPocket — Siwy & Szymon (FIXED)</title>
+<title>GymPocket — Siwy & Szymon (UPDATED)</title>
 <style>
 :root{
   --bg:#000;
@@ -209,13 +209,20 @@ textarea{width:100%;height:110px;border-radius:12px;padding:10px;background:#000
 const EX_LIB = {
   'bench': { name:"Wyciskanie sztangi leżąc", tech:"Stopy stabilne, łopatki złączone; kontrolowane opuszczanie. Nie odbijaj.", altIds:['incline_db','db_bench','close_grip_bench'], rating:5, equip:'sztanga' },
   'incline_db': { name:"Wyciskanie hantli skos +", tech:"Ławka 25–35°, pełne rozciągnięcie na dole.", altIds:['bench','db_bench'], rating:5, equip:'hantle' },
+  'incline_press_machine': { name:"Skos dodatni na maszynie / incline press", tech:"Stabilny tor ruchu, łopatki ściągnięte i w dół, kontroluj opuszczanie.", altIds:['incline_db','db_bench'], rating:5, equip:'maszyna' },
+  'chest_press_machine': { name:"Chest press machine / wyciskanie na maszynie", tech:"Płynny ruch bez odbijania, mocna praca klatki.", altIds:['bench','db_bench'], rating:5, equip:'maszyna' },
   'db_bench': { name:"Wyciskanie hantli leżąc", tech:"Lepszy ROM, korekta asymetrii.", altIds:['bench','incline_db'], rating:5, equip:'hantle' },
   'flys': { name:"Rozpiętki (cable fly)", tech:"Kontrolowane rozciągnięcie i ściskanie klatki.", altIds:['db_fly','pec_deck'], rating:4, equip:'brama' },
+  'pec_deck': { name:"Pec deck / butterfly machine", tech:"Stałe napięcie na klatce i kontrola końcówki ruchu.", altIds:['flys','cable_fly_low_high'], rating:5, equip:'maszyna' },
+  'db_fly': { name:"Rozpiętki hantlami", tech:"Lekko ugięte łokcie i duży łuk ruchu.", altIds:['flys','pec_deck'], rating:4, equip:'hantle' },
+  'cable_fly_low_high': { name:"Rozpiętki na bramie z dołu do góry", tech:"Lekko ugięte łokcie, duży łuk ruchu i spięcie w końcówce.", altIds:['flys','pec_deck'], rating:4.5, equip:'brama' },
 
   'squat': { name:"Przysiad ze sztangą (back squat)", tech:"Biodra w tył, neutralny kręgosłup; zejście kontrolowane.", altIds:['front_squat','leg_press','goblet_squat'], rating:5, equip:'sztanga' },
   'front_squat': { name:"Przysiad przedni (front squat)", tech:"Większy nacisk na czwórki.", altIds:['squat'], rating:5, equip:'sztanga' },
   'leg_press': { name:"Suwnica (leg press)", tech:"Bezpieczniejsza opcja gdy ból lędźwi.", altIds:['squat','hack_squat'], rating:4.5, equip:'maszyna' },
   'leg_extension': { name:"Prostowanie nóg (leg extension)", tech:"Izolacja czworogłowych; kontroluj blok.", altIds:[], rating:4, equip:'maszyna' },
+  'shoulder_press_machine': { name:"Shoulder press machine / wyciskanie barków", tech:"Nie odginaj pleców, ruch kontrolowany i bez szarpania.", altIds:['seated_db_ohp','ohp'], rating:5, equip:'maszyna' },
+  'lateral_raise': { name:"Unoszenie bokiem hantlami / linkami", tech:"Prowadź łokciem, nie machaj tułowiem, zatrzymaj na wysokości barków.", altIds:['facepull'], rating:5, equip:'hantle' },
 
   'rdl': { name:"Martwy ciąg rumuński (RDL)", tech:"Hip-hinge, neutralny kręgosłup, pracuj biodrami.", altIds:['hip_thrust','single_leg_rdl'], rating:5, equip:'sztanga' },
   'hip_thrust': { name:"Hip Thrust", tech:"Maksymalna izolacja pośladków.", altIds:['rdl'], rating:5, equip:'sztanga' },
@@ -225,14 +232,20 @@ const EX_LIB = {
   'row': { name:"Wiosłowanie sztangą / T-bar", tech:"Plecy proste, łokcie do bioder.", altIds:['db_row','seated_row'], rating:5, equip:'sztanga' },
   'db_row': { name:"Wiosłowanie hantlem jednorącz", tech:"Korekta asymetrii, mocne spięcie łopatek.", altIds:['row'], rating:5, equip:'hantle' },
   'seated_row': { name:"Wiosłowanie siedząc (wyciąg)", tech:"Izolacja środkowych pleców; kontrola ruchu.", altIds:['row','db_row'], rating:4.5, equip:'wyciąg' },
+  'chest_supported_row': { name:"Wiosłowanie na maszynie z podparciem klatki", tech:"Pauza w spięciu, ciągnij łokciami i nie skręcaj tułowia.", altIds:['seated_row','row'], rating:5, equip:'maszyna' },
+  'single_arm_pulldown_hip': { name:"Jednorącz ściąganie na wyciągu do biodra", tech:"Łokieć prowadź do kieszeni, pełna kontrola i lekkie pochylenie.", altIds:['pullover','latpulldown'], rating:4.5, equip:'wyciąg' },
   'pullup': { name:"Podciąganie na drążku", tech:"Pełny ROM, kontrola opuszczania.", altIds:['latpulldown','assisted_pullup'], rating:5, equip:'drążek' },
   'latpulldown': { name:"Ściąganie drążka górnego", tech:"Skalowalna alternatywa dla drążka.", altIds:['pullup'], rating:5, equip:'wyciąg' },
+  'neutral_pulldown': { name:"Ściąganie drążka neutralnie", tech:"Klatka wysoko, ciągnij łokciami w dół i nie unoś barków.", altIds:['pullup','latpulldown'], rating:5, equip:'wyciąg' },
 
   'ohp': { name:"Wyciskanie nad głowę (OHP)", tech:"Kontroluj lędźwia; nie przesadzać z przeprostem.", altIds:['seated_db_ohp'], rating:5, equip:'sztanga' },
   'seated_db_ohp': { name:"Wyciskanie hantli siedząc", tech:"Stabilne, dobre dla barków.", altIds:['ohp'], rating:5, equip:'hantle' },
   'facepull': { name:"Face pulls", tech:"Ciągnij środek liny ku twarzy; tylne delt.", altIds:['rear_delt_fly'], rating:5, equip:'wyciąg' },
+  'rear_delt_fly': { name:"Odwrotne rozpiętki", tech:"Nie szarp, trzymaj łopatki pod kontrolą i czuj tył barku.", altIds:['facepull'], rating:5, equip:'maszyna' },
+  'shrugs': { name:"Szrugsy hantlami / na maszynie", tech:"Sam ruch barków w górę bez kręcenia i z krótką pauzą na górze.", altIds:['farmer_walk'], rating:4.5, equip:'hantle' },
 
   'dips': { name:"Dipy (poręcze)", tech:"Pochyl tułów by angażować klatkę; triceps z bliskim trzymaniem.", altIds:['close_grip_bench','diamond_pushups'], rating:5, equip:'poręcze' },
+  'dip_machine': { name:"Dipy na maszynie / assisted dips", tech:"Lekki pochył do przodu, nie schodź za głęboko, jeśli barki protestują.", altIds:['dips','close_grip_bench'], rating:5, equip:'maszyna' },
   'close_grip_bench': { name:"Wyciskanie sztangi wąsko", tech:"Działa triceps i dolną część klatki.", altIds:['dips'], rating:4.5, equip:'sztanga' },
   'diamond_pushups': { name:"Pompki diamentowe", tech:"Dobra alternatywa bez sprzętu.", altIds:['dips'], rating:4, equip:'ciało' },
 
@@ -240,9 +253,16 @@ const EX_LIB = {
   'db_sup': { name:"Uginanie hantli (supinacja)", tech:"Supinuj nadgarstek przy szczycie; cel: biceps peak.", altIds:['biceps','ez_curl'], rating:5, equip:'hantle' },
   'preacher': { name:"Modlitewnik (preacher curl)", tech:"Izolacja bicepsa, kontrola dolnej fazy.", altIds:['cable_preacher','db_curl'], rating:4, equip:'maszyna' },
   'hammer_curl': { name:"Hammer curl", tech:"Przedramię + brachialis; trzymać neutralny chwyt.", altIds:['rope_hammer','db_hammer'], rating:5, equip:'hantle' },
+  'rope_hammer': { name:"Hammer curl na linie", tech:"Neutralny chwyt i pełna kontrola bez bujania.", altIds:['hammer_curl'], rating:4.5, equip:'wyciąg' },
+  'db_hammer': { name:"Hammer curl hantlami", tech:"Łokcie blisko ciała, stabilny nadgarstek.", altIds:['hammer_curl'], rating:4.5, equip:'hantle' },
+  'ez_curl': { name:"Uginanie EZ", tech:"Łokcie przy tułowiu, pełen wyprost i bez bujania.", altIds:['biceps','db_sup'], rating:5, equip:'sztanga' },
+  'incline_db_curl': { name:"Uginanie hantli na skosie", tech:"Barki cofnięte, łokcie nie uciekają do przodu, opuszczaj wolno.", altIds:['preacher','db_sup'], rating:5, equip:'hantle' },
   'reverse_curl': { name:"Uginanie nachwytem (reverse curl)", tech:"Przedramię + brachialis; utrzymuj łokcie.", altIds:[], rating:4, equip:'sztanga' },
 
   'triceps': { name:"Prostowanie linek (pushdown)", tech:"Łokcie przy tułowiu; pracuje triceps.", altIds:['overhead_ext','skull_crusher'], rating:4.5, equip:'wyciąg' },
+  'skull_crusher': { name:"Francuskie leżąc / skull crushers", tech:"Kontrolowane opuszczanie i stabilne łokcie.", altIds:['triceps','overhead_ext'], rating:5, equip:'sztanga' },
+  'rope_pushdown': { name:"Prostowanie tricepsa na linie", tech:"Łokcie przyklejone do boków, pełne dopięcie na dole.", altIds:['triceps'], rating:4.5, equip:'wyciąg' },
+  'overhead_rope_triceps': { name:"Triceps nad głową na linie", tech:"Łokcie wąsko, rozciągaj triceps bez bujania.", altIds:['overhead_ext','triceps'], rating:4.5, equip:'wyciąg' },
   'overhead_ext': { name:"Prostowanie hantli zza głowy (one/two-arm)", tech:"Dobra praca długiej głowy tricepsa.", altIds:['triceps'], rating:4.5, equip:'hantle' },
   'skull': { name:"Francuskie leżąc (skull crushers)", tech:"Kontrolowane opuszczanie, łokcie stabilne.", altIds:['overhead_ext','french_press'], rating:5, equip:'sztanga' },
 
@@ -262,112 +282,51 @@ const EX_LIB = {
   'cardio': { name:"Cardio umiarkowane", tech:"Tętno w strefie tlenowej.", altIds:[], rating:3, equip:'cardio' }
 };
 
+
 const WEEK_TEMPLATE = [
-  { id:"d1", dayName:"Poniedziałek", type:"workout", title:"Trening • Poniedziałek", theme:"push", subtitle:"Klatka + Nogi + Triceps", key:'pon' },
+  { id:"d1", dayName:"Poniedziałek", type:"workout", title:"Trening • Poniedziałek", theme:"push", subtitle:"Klatka + Barki + Triceps", key:'pon' },
   { id:"d2", dayName:"Wtorek", type:"rest", title:"Aktywna regeneracja", theme:"rest", subtitle:"Spacer, mobilność", key:'wto' },
-  { id:"d3", dayName:"Środa", type:"workout", title:"Trening • Środa", theme:"pull", subtitle:"Plecy + Barki + Biceps", key:'sro' },
+  { id:"d3", dayName:"Środa", type:"workout", title:"Trening • Środa", theme:"pull", subtitle:"Plecy + Biceps + Kaptury + Tył barku", key:'sro' },
   { id:"d4", dayName:"Czwartek", type:"rest", title:"Dzień wolny", theme:"rest", subtitle:"Regeneracja" , key:'czw'},
-  { id:"d5", dayName:"Piątek", type:"workout", title:"Trening • Piątek", theme:"legs", subtitle:"Full-body / Detale", key:'pia'},
+  { id:"d5", dayName:"Piątek", type:"workout", title:"Trening • Piątek", theme:"legs", subtitle:"Klatka + Ramiona + Plecy + Lekki dół", key:'pia'},
   { id:"d6", dayName:"Sobota", type:"rest", title:"Aktywna regeneracja", theme:"rest", subtitle:"Lekkie cardio" , key:'sob'},
   { id:"d7", dayName:"Niedziela", type:"rest", title:"Dzień wolny", theme:"rest", subtitle:"Meal prep / Odpoczynek", key:'nie'}
 ];
 
 const PLAN_SIWY = {
   "d1":[
-    {id:'bench',sets:'5',reps:'6-8'},
-    {id:'incline_db',sets:'4',reps:'8'},
-    {id:'flys',sets:'4',reps:'12-15'},
-    {id:'biceps',sets:'4',reps:'8'},
-    {id:'db_sup',sets:'3-4',reps:'10-12'},
-    {id:'preacher',sets:'3',reps:'12'},
-    {id:'dips',sets:'4',reps:'8-10'},
-    {id:'triceps',sets:'4',reps:'12'},
-    {id:'skull',sets:'3',reps:'10'},
-    {id:'leg_raise',sets:'4',reps:'15'},
-    {id:'plank',sets:'3',reps:'max'},
-    {id:'russian_twist',sets:'3',reps:'20'}
+    {id:'incline_press_machine',sets:'4',reps:'6-8'},
+    {id:'chest_press_machine',sets:'3',reps:'8-10'},
+    {id:'cable_fly_low_high',sets:'3',reps:'12-15'},
+    {id:'shoulder_press_machine',sets:'3',reps:'6-8'},
+    {id:'lateral_raise',sets:'4',reps:'12-20'},
+    {id:'rope_pushdown',sets:'3',reps:'10-15'},
+    {id:'overhead_rope_triceps',sets:'2',reps:'12-20'}
   ],
   "d3":[
-    {id:'squat',sets:'5',reps:'6-8'},
-    {id:'rdl',sets:'4',reps:'8-10'},
-    {id:'leg_press',sets:'4',reps:'12'},
-    {id:'leg_extension',sets:'3',reps:'15'},
-    {id:'leg_curl',sets:'3',reps:'12'},
-    {id:'standing_calf',sets:'5',reps:'15-20'},
-    {id:'close_grip_bench',sets:'4',reps:'8'},
-    {id:'overhead_ext',sets:'3',reps:'12'},
-    {id:'hanging_leg_raise',sets:'4',reps:'12-15'},
-    {id:'plank',sets:'3',reps:'max'}
+    {id:'neutral_pulldown',sets:'4',reps:'6-10'},
+    {id:'chest_supported_row',sets:'4',reps:'8-10'},
+    {id:'single_arm_pulldown_hip',sets:'3',reps:'10-12'},
+    {id:'facepull',sets:'4',reps:'12-20'},
+    {id:'shrugs',sets:'3',reps:'10-12'},
+    {id:'ez_curl',sets:'3',reps:'8-10'},
+    {id:'incline_db_curl',sets:'3',reps:'10-12'}
   ],
   "d5":[
-    {id:'pullup',sets:'4',reps:'max'},
-    {id:'row',sets:'4',reps:'8-10'},
-    {id:'seated_row',sets:'3',reps:'12'},
-    {id:'facepull',sets:'4',reps:'15'},
-    {id:'hammer_curl',sets:'4',reps:'10'},
-    {id:'reverse_curl',sets:'3',reps:'15'},
-    {id:'hanging_leg_raise',sets:'3',reps:'max'}
+    {id:'incline_press_machine',sets:'4',reps:'8-10'},
+    {id:'dip_machine',sets:'3',reps:'8-10'},
+    {id:'pec_deck',sets:'3',reps:'12-15'},
+    {id:'seated_row',sets:'3',reps:'8-10'},
+    {id:'lateral_raise',sets:'4',reps:'12-20'},
+    {id:'hammer_curl',sets:'3',reps:'10-12'},
+    {id:'triceps',sets:'3',reps:'12-15'},
+    {id:'leg_curl',sets:'3',reps:'10-15'},
+    {id:'hip_thrust',sets:'3',reps:'8-10'},
+    {id:'leg_extension',sets:'2',reps:'12-15'}
   ]
 };
 
-const PLAN_SZYMON = {
-  "d1":[
-    {id:'bench',sets:'4',reps:'8-10'},
-    {id:'incline_db',sets:'4',reps:'10'},
-    {id:'flys',sets:'4',reps:'12-15'},
-    {id:'biceps',sets:'4',reps:'10'},
-    {id:'db_sup',sets:'3-4',reps:'10-12'},
-    {id:'preacher',sets:'3',reps:'12'},
-    {id:'dips',sets:'3',reps:'10-12'},
-    {id:'triceps',sets:'4',reps:'12'},
-    {id:'skull',sets:'3',reps:'10'},
-    {id:'leg_raise',sets:'4',reps:'15'},
-    {id:'plank',sets:'3',reps:'max'},
-    {id:'russian_twist',sets:'3',reps:'20'}
-  ],
-  "d3":[
-    {id:'squat',sets:'4',reps:'8-10'},
-    {id:'rdl',sets:'4',reps:'8-10'},
-    {id:'leg_press',sets:'4',reps:'12'},
-    {id:'leg_extension',sets:'3',reps:'15'},
-    {id:'leg_curl',sets:'3',reps:'12'},
-    {id:'standing_calf',sets:'5',reps:'15-20'},
-    {id:'close_grip_bench',sets:'3',reps:'10'},
-    {id:'overhead_ext',sets:'3',reps:'12'},
-    {id:'hanging_leg_raise',sets:'4',reps:'12-15'},
-    {id:'plank',sets:'3',reps:'max'}
-  ],
-  "d5":[
-    {id:'pullup',sets:'4',reps:'max'},
-    {id:'row',sets:'4',reps:'8-10'},
-    {id:'seated_row',sets:'3',reps:'12'},
-    {id:'facepull',sets:'4',reps:'15'},
-    {id:'hammer_curl',sets:'4',reps:'10'},
-    {id:'reverse_curl',sets:'3',reps:'15'},
-    {id:'hanging_leg_raise',sets:'3',reps:'max'}
-  ]
-};
-
-/* =========================
-   CRITICAL CHANGE #4 — ensure plans are 1:1
-   Jeśli PLAN_SIWY i PLAN_SZYMON różnią się, nadpisujemy PLAN_SZYMON kopią PLAN_SIWY
-   (w ten sposób wymuszamy że "plan u szymona i siwego musi być taki sam, 1:1")
-   ========================= */
-(function ensurePlansSync(){
-  try{
-    // Cel: wymusić parytet 1:1 — kopiujemy zawartość PLAN_SIWY do PLAN_SZYMON
-    // zamiast próbować reasignować binding (który jest const).
-    Object.keys(PLAN_SIWY).forEach(dayKey => {
-      // Zamiana/utworzenie właściwości w obiekcie PLAN_SZYMON
-      // (mutacja właściwości jest dozwolona nawet gdy PLAN_SZYMON jest const).
-      PLAN_SZYMON[dayKey] = JSON.parse(JSON.stringify(PLAN_SIWY[dayKey]));
-    });
-    console.info('ensurePlansSync: PLAN_SZYMON zaktualizowany na podstawie PLAN_SIWY (1:1).');
-  }catch(e){
-    console.warn('ensurePlansSync error', e);
-  }
-})();
-
+const PLAN_SZYMON = JSON.parse(JSON.stringify(PLAN_SIWY));
 /* =========================
    STAN / STORAGE
    ========================= */
